@@ -30,10 +30,8 @@ The following command finds jupyter cells tagged "pandas"
 
 
 ```bash session
-foo@bar:~$ kapitsa pandas
-```
+> kapitsa pandas
 
-```python
 Found 2 matches for "pandas":
 
 # file: ./path/to/file.ipynb:126
@@ -46,14 +44,12 @@ df = pd.read_csv('./data.gzip', parse_dates=["START","END"], compression='gzip',
 The following command finds jupyter cells tagged pandas also, but only specific to keywords "loc" and "regex"
 
 ```bash session
-foo@bar:~$ kapitsa pandas loc regex
-```
+$ kapitsa pandas loc regex
 
-```python
 Found 1 match:
 
+# file: ./path/to/file.ipynb:126
 df.loc[df['Zips'].str.contains('\D', regex=True)]
-file: ./path/to/file.ipynb:126
 ```
 
 # Setup and install
