@@ -8,7 +8,7 @@ Remembering the syntax for **complex** or **infrequent** operations is hard. Als
 
 ## Solution
 
-A script to query tagged code cells from .ipynb files and return the source and path to the file. Users provide a configuration file to specify paths to search and some othe optional parameters.
+Kapitsa is a simple script that scans **jupyter tagged code cells** from .ipynb files for keywords and returns the source and path to the file. Users provide a configuration file to specify paths to search and begin tagging cells with their own examples. This way authors build their own library of examples and best practices to call up from the command line at any time.
 
 # Example
 <!-- 
@@ -19,78 +19,108 @@ cd6684
 6f5a7e 
 -->
 
-<style>
+<!-- <style>
     .host { color: #6f5a7e }
     .prompt { color: #6f5a7e } 
     .kapitsa { color: #ff677d }
     .search { color: #ffae8f}
-</style>
+</style> -->
 
-<pre>
-<code><span class="host">foo@bar:~</span><span class="prompt">$</span> <span class="kapitsa">kapitsa</span> <span class="search">pandas loc regex</span></code>
-</pre>
+The following command finds jupyter cells tagged "pandas"
+
+
+```bash session
+foo@bar:~$ kapitsa pandas
+```
+
+```python
+Found 2 matches for "pandas":
+
+# file: ./path/to/file.ipynb:126
+df.loc[df['Zips'].str.contains('\D', regex=True)]
+
+# file: ./path/to/other/file.ipynb:55
+df = pd.read_csv('./data.gzip', parse_dates=["START","END"], compression='gzip', dtype={ 'ZIP': 'str'})
+```
+
+The following command finds jupyter cells tagged pandas also, but only specific to keywords "loc" and "regex"
+
+```bash session
+foo@bar:~$ kapitsa pandas loc regex
+```
 
 ```python
 Found 1 match:
--------------------------------------------------
+
 df.loc[df['Zips'].str.contains('\D', regex=True)]
-file: ./path/to/file.ipynb
-line number: 126
+file: ./path/to/file.ipynb:126
 ```
 
-## Installation
+# Setup and install
 
-### Requirements
+## Requirements
 
-Users must have [node >= v12.15.0](https://nodejs.org/en/download/) installed. Read the Implementation section below for more information.
+Users must have [jq >= jq-1.6](https://stedolan.github.io/jq/) installed. Read the Implementation section below for more information.
 
-### Configuration File
+## Download
 
-The user defines a path to a configuration file. That configuration defines paths to search for .ipynb files and optional ignore paths and a namespace.
+```bash
+$ git clone https://github.com/gitjeff05/kapitsa
+```
 
-Export a variable, `KAPITSA` that points to your configuration file. Add this to your `.bash_profile` or `.zshrc` to make it permanent.
+## Alias or put in $PATH
+
+Make sure that this directory is in your path or just make an alias to it in your `.bash_profile`.
+
+```bash
+alias kapitsa=$HOME/Github/kapitsa/kapitsa
+```
+If you go the alias route you will also have to make it executable by the owner:
+
+```bash
+$ chmod u+rx kapitsa
+```
+
+Note: Many installers do this setup for you. I decided (for now) not to. Read below for reasons why.
+
+## Create configuration file and environment variable
+
+Create a `json` file `.kapista` with these contents and save it anywhere (`$HOME` is a good choice)
+
+```json
+{
+    "path": "$HOME/Projects"
+}
+```
+
+Export a variable, `KAPITSA` that points to your configuration file. Add this to your `.bash_profile`.
 
 ```bash
 export KAPITSA=$HOME/.kapitsa
 ```
 
-The file should be in json format:
+The configuration file also accepts an optional argument, `ignore` which is passed to the command `find` to skip files in that directory.
 
 ```json
 {
     "path": "$HOME/projects:$HOME/github",
-    "ignore": ["**/.ipynb_checkpoints/*"],
-    "namespace": "kapitsa"
+    "ignore": ["*/.ipynb_checkpoints/*"]
 }
 ```
 
-Note that `ignore` and `namespace` are optional. `namespace` can be used if users are already using metadata with keys like `pandas` or `r` or they do not want to potentially abuse the global namespace.
+# How it works
 
-JupyterLab has a mechanism to save metadata for a cell. Users of Jupyter should add metadata to a cell in the format
+Kapitsa uses functionality built into JupyterLab -- saveing metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "kap" at the root level.
 
 ```json
 {
-    "{type}": ["keyword1", "keyword2"]
+    "kap": [
+        { "{type}": ["keyword1", "keyword2"] }
+    ]
 }
 ```
 
 where `{type}` is something like "pandas" or "numpy" -- this should be up to the user. The value supplied to `{type}` should be an array of strings representing keywords for that operation.
-
-## Example
-
-Suppose you are cleaning data, you notice that one of your columns, `Zip`, should only contain numbers, has some cells that contain special characters. So you assign a variable to find rows containing invalid zip codes.
-
-```python
-invalid_zips = df.loc[df['Zip'].str.contains('\D', regex=True)]
-```
-
-Now within that cells metadata, you add the following:
-
-```json
-{
-    "pandas": ["loc", "str", "contains", "regex"]
-}
-```
 
 # Notes on the implementation
 
@@ -101,12 +131,9 @@ Note that this script must be made to be executable but its only business is to 
 # Future Ideas
 
 - A default set of examples for some languages/frameworks (e.g., python, pandas, numpy, scikit)
-- Fetching & caching cell metadata and source from remote locations. This way users could essentially "subscribe" to another authors preferred examples the same way many bash users borrow shell configurations (.dotfiles) from prominent authors.
-
-# Challenges
-
-- Interoperability
-- There is not a way to record the program versions that executed the cell (e.g., )
+- Caching cell metadata to make searches faster
+- Fetching metadata and source from remote locations. Users could essentially "subscribe" to other authors' preferred examples the same way bash users borrow shell configurations (.dotfiles) from authors.
+- A JupyterLab extension so that users can easily tag cells without typing up json.
 
 # License
 MIT License. See LICENSE.md

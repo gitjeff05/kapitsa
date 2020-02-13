@@ -54,28 +54,35 @@ if checkIfKapitsaEnv; then
     # replace string $HOME with expanded shell variable $HOME
     paths="${path_list//\$HOME/$HOME}"
     
-    echo "$paths" | while IFS= read -r line; do
-        if [ ! -d "$line" ]; then
-            printf "\nWarning: %s could not be searched because it is not a valid directory. Make sure your .kapitsa config file contains a valid directory.\n" "$line"
+    # Run the search on each directory specified
+    echo "$paths" | while IFS= read -r directory; do
+
+        # break out if directory is not valid
+        if [ ! -d "$directory" ]; then
+            printf "\nWarning: %s could not be searched because it is not a valid directory. Make sure your .kapitsa config file contains a valid directory.\n" "$directory"
             break
         fi
-        echo "one path to search: ${line}"
-        
-        # find "$line" -type f -name "*.ipynb" \! \( -path "*kubeflow*" -o -path "*ipynb_checkpoints*" \) -prune -print0 
-        # files_list=$(find "$line" -type f -name '*.ipynb' \! \( -path "*kubeflow*" -o -path "*ipynb_checkpoints*" \) -prune -print)
-        files_list=$(find "$line" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" -prune -print)
+
+        echo "Searching: ${directory}"
+
+        # Get a list of all the files to iterate over
+        files_list=$(find "$directory" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" -prune -print)
+
+        # For every notebook file found in this directory perform the search
         echo "$files_list" | while IFS= read -r notebook_file; do
+
+            # Use jq to search the json for matches
             found_source=$( (jq '.cells | .[] | select((.cell_type == "code") and (.metadata.pandas | type == "array")) | .source' | tr -d '[]') < "$notebook_file")
-            if [ ${#found_source} -ge 5 ]; then
+
+            # If there was a match, print the results
+            if [ ${#found_source} -ge 1 ]; then
                 echo "$notebook_file"
                 echo "$found_source"
             fi
+
         done;
-        # find "$line" -type f -name '*.ipynb' \! \( -path "*kubeflow*" -o -path "*ipynb_checkpoints*" \) -prune -exec sh -c 'jq ".cells" < "$@";' -- {} +
-        # jq '.cells | .[] | select((.cell_type == "code") and (.metadata | tostring != "{}")) | {metadata, source}' < "$HOME/Projects/classifyStatements/train/awards-grants/DataframeTutorial.ipynb"
+
     done;
-
-
 
 else
     echo "Error: 'KAPITSA' env variable not set. Set KAPITSA to the path of .kapitsa config file."
