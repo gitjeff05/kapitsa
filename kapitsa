@@ -1,0 +1,85 @@
+#!/bin/bash
+
+set -e
+
+# Check if the KAPITSA env var has been set
+checkIfKapitsaEnv() {
+    if [ -z "${KAPITSA}" ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+# Print .kapitsa config example
+printConfigInfo() {
+    echo "The .kapitsa config json requires a key, \"path\" whos value must point to a directory."
+    echo "Multiple directories are allowed but must be separated by a colon (:)"
+    printf "\nOnly absolute paths or paths using the \$HOME environment variable are valid values for \"path\".\n"
+    echo "For example \"\$HOME/path/to/dir:/Users/everyone/notebooks\" is valid"
+    printf "while \"\$NOTEBOOKS/dir:/Users/everyone/notebooks\" is invalid because \$NOTEBOOKS is not allowed.\n\n"
+    echo "{\"path\":\"\$HOME/projects:\$HOME/github\",\"ignore\":[\".ipynb_checkpoints/*\"],\"namespace\":\"kapitsa\"}" | jq .
+}
+
+# Before we begin, make sure the $KAPITSA env variable is set.
+if checkIfKapitsaEnv; then
+
+    # Make sure $KAPITSA is pointing to a file.
+    if [ ! -f "$KAPITSA" ]; then
+        echo "Error: Could not find .kapitsa configuration file at $KAPITSA."
+        printConfigInfo
+        exit 1
+    fi
+
+    # Make sure the json file has a path key and that it is a string
+    if [ ! "$(jq '. | select(.path|type=="string")' < "$KAPITSA")" ]; then
+        printf "Error: Invalid or missing required key \"path\" in json file.\n\n"
+        printConfigInfo
+        exit 1
+    fi
+
+    # Get a list of paths on separate lines
+    path_list=$(jq '.path' < "$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
+    
+    # If path contains $HOME, ensure that it is defined
+    if [[ $path_list =~ "\$HOME" ]]; then
+        if [ -z "${HOME}" ]; then
+            printf "You specified \$HOME in your \"path\" but your \$HOME environment variable is not set.\n\n"
+            printf "\"path\": \"%s\"\n\n" "$(jq '.path' < "$KAPITSA" | tr -d '[][:space:]"')"
+            printConfigInfo
+            exit 1
+        fi
+    fi
+
+    # replace string $HOME with expanded shell variable $HOME
+    paths="${path_list//\$HOME/$HOME}"
+    
+    echo "$paths" | while IFS= read -r line; do
+        if [ ! -d "$line" ]; then
+            printf "\nWarning: %s could not be searched because it is not a valid directory. Make sure your .kapitsa config file contains a valid directory.\n" "$line"
+            break
+        fi
+        echo "one path to search: ${line}"
+        
+        # find "$line" -type f -name "*.ipynb" \! \( -path "*kubeflow*" -o -path "*ipynb_checkpoints*" \) -prune -print0 
+        # files_list=$(find "$line" -type f -name '*.ipynb' \! \( -path "*kubeflow*" -o -path "*ipynb_checkpoints*" \) -prune -print)
+        files_list=$(find "$line" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" -prune -print)
+        echo "$files_list" | while IFS= read -r notebook_file; do
+            found_source=$( (jq '.cells | .[] | select((.cell_type == "code") and (.metadata.pandas | type == "array")) | .source' | tr -d '[]') < "$notebook_file")
+            if [ ${#found_source} -ge 5 ]; then
+                echo "$notebook_file"
+                echo "$found_source"
+            fi
+        done;
+        # find "$line" -type f -name '*.ipynb' \! \( -path "*kubeflow*" -o -path "*ipynb_checkpoints*" \) -prune -exec sh -c 'jq ".cells" < "$@";' -- {} +
+        # jq '.cells | .[] | select((.cell_type == "code") and (.metadata | tostring != "{}")) | {metadata, source}' < "$HOME/Projects/classifyStatements/train/awards-grants/DataframeTutorial.ipynb"
+    done;
+
+
+
+else
+    echo "Error: 'KAPITSA' env variable not set. Set KAPITSA to the path of .kapitsa config file."
+    printf 'Manually add the following to %s/.bash_profile (or similar)\n\n' "$HOME"
+	printf "export KAPITSA=\"\$HOME/.kapitsa\"\n\n"
+    printConfigInfo
+fi

@@ -20,22 +20,21 @@ cd6684
 -->
 
 <style>
-    .pre-custom { background-color: #6f5a7e; }
-    .host { color: #ffae8f }
-    .prompt { color: #cd6684 } 
+    .host { color: #6f5a7e }
+    .prompt { color: #6f5a7e } 
     .kapitsa { color: #ff677d }
     .search { color: #ffae8f}
 </style>
 
-<pre class="pre-custom">
+<pre>
 <code><span class="host">foo@bar:~</span><span class="prompt">$</span> <span class="kapitsa">kapitsa</span> <span class="search">pandas loc regex</span></code>
 </pre>
 
-```bash
+```python
 Found 1 match:
-
+-------------------------------------------------
 df.loc[df['Zips'].str.contains('\D', regex=True)]
-reference: ./path/to/file.ipynb
+file: ./path/to/file.ipynb
 line number: 126
 ```
 
@@ -49,7 +48,7 @@ Users must have [node >= v12.15.0](https://nodejs.org/en/download/) installed. R
 
 The user defines a path to a configuration file. That configuration defines paths to search for .ipynb files and optional ignore paths and a namespace.
 
-Export a variable, `KAPITSA` that points to your configuration file.
+Export a variable, `KAPITSA` that points to your configuration file. Add this to your `.bash_profile` or `.zshrc` to make it permanent.
 
 ```bash
 export KAPITSA=$HOME/.kapitsa
@@ -60,7 +59,7 @@ The file should be in json format:
 ```json
 {
     "path": "$HOME/projects:$HOME/github",
-    "ignore": ["**/node_modules/*"],
+    "ignore": ["**/.ipynb_checkpoints/*"],
     "namespace": "kapitsa"
 }
 ```
