@@ -26,7 +26,7 @@ cd6684
     .search { color: #ffae8f}
 </style> -->
 
-The following command finds jupyter cells tagged "pandas"
+The following command finds jupyter cells tagged "*pandas*"
 
 
 ```bash session
@@ -41,10 +41,10 @@ df.loc[df['Zips'].str.contains('\D', regex=True)]
 df = pd.read_csv('./data.gzip', parse_dates=["START","END"], compression='gzip', dtype={ 'ZIP': 'str'})
 ```
 
-The following command finds jupyter cells tagged pandas also, but only specific to keywords "loc" and "regex"
+This next command finds jupyter cells tagged "*pandas*" also, but only specific to keywords "loc" and "regex"
 
 ```bash session
-$ kapitsa pandas loc regex
+> kapitsa pandas loc regex
 
 Found 1 match:
 
@@ -60,24 +60,22 @@ Users must have [jq >= jq-1.6](https://stedolan.github.io/jq/) installed. Read t
 
 ## Download
 
-```bash
-$ git clone https://github.com/gitjeff05/kapitsa
+```bash session
+> git clone https://github.com/gitjeff05/kapitsa
 ```
 
 ## Alias or put in $PATH
 
-Make sure that this directory is in your path or just make an alias to it in your `.bash_profile`.
+Add this directory to your path or just make an alias in your `.bash_profile`.
 
-```bash
-alias kapitsa=$HOME/Github/kapitsa/kapitsa
+```bash session
+> alias kapitsa=$HOME/Github/kapitsa/kapitsa
 ```
-If you go the alias route you will also have to make it executable by the owner:
+Make `kapitsa` file executable by the owner:
 
-```bash
-$ chmod u+rx kapitsa
+```bash session
+> chmod u+rx kapitsa
 ```
-
-Note: Many installers do this setup for you. I decided (for now) not to. Read below for reasons why.
 
 ## Create configuration file and environment variable
 
@@ -120,9 +118,13 @@ where `{type}` is something like "pandas" or "numpy" -- this should be up to the
 
 # Notes on the implementation
 
-This search script is meant to be minimal. It simply reads `code` cells from .ipynb files and filters on the `metadata` attribute and returns the contents of the `source` along with the line number and full path to the file. If seeing the source for the example is not enough, users can open the notebook and go through the example.
+This search script is meant to be minimal. As such, I have not included complex install scripts that would do a lot of the setup for you. At the moment, I will assume consumers of this package are at least somewhat familiar with the command line and can do things like edit `.bash_profile` (or similar), create an `alias` and modify some permissions with `chmod`. Personally, I like the transparency of knowing what my scripts are doing. Anyone can read the contents of `kapitsa` and know that it simply parses some files and outputs. Please [open an issue](https://github.com/gitjeff05/kapitsa/issues) if you see anything in the script that might be a security vulnerability.
 
-Note that this script must be made to be executable but its only business is to read files and output the results. It cannot write to directories or publish anything it finds. I encourage you to check the source code and open an issue to alert the author of any security vulnerabilities.
+The main (and only) script simply reads `code` cells from .ipynb files and filters on the `metadata` attribute by the parameters passed in by the user. It outputs the contents of the `source` along with the line number and full path to the file. If seeing the source outside of the context is not enough, users can open the notebook and go through the example.
+
+# Security 
+
+I have done my best to ensure that this code can do no harm. The primary use of this script is to read files and output the results. It does not write to directories or publish anything it finds. It does not track you or anything else. I encourage you to check the source code and [open an issue](https://github.com/gitjeff05/kapitsa/issues) to alert the author of any security vulnerabilities. 
 
 # Future Ideas
 
