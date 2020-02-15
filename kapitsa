@@ -1,7 +1,13 @@
 #!/bin/bash
 
 set -e
+CL_DEF="\033[39m"
+CL_RED="\033[31m"
+CL_CYA="\033[36m"
 
+SEARCH_STR="$1"
+META_SEARCH=".metadata.kapitsa.$SEARCH_STR"
+echo "$META_SEARCH"
 # Check if the KAPITSA env var has been set
 checkIfKapitsaEnv() {
     if [ -z "${KAPITSA}" ]; then
@@ -26,7 +32,8 @@ if checkIfKapitsaEnv; then
 
     # Make sure $KAPITSA is pointing to a file.
     if [ ! -f "$KAPITSA" ]; then
-        echo "Error: Could not find .kapitsa configuration file at $KAPITSA."
+        echo -e "Default \e[91mLight red"
+        echo -e "\e[91mError: Could not find .kapitsa configuration file at $KAPITSA."
         printConfigInfo
         exit 1
     fi
@@ -68,16 +75,24 @@ if checkIfKapitsaEnv; then
         # Get a list of all the files to iterate over
         files_list=$(find "$directory" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" -prune -print)
 
+        # echo '{ "matplotlib": 42, "bar": "less interesting data"}' | jq --arg foo "$1" '.[$foo]'
+        # echo '[{ "matplotlib": 42, "bar": "less interesting data"},{ "pandas": 42, "bar": "less interesting data"}]' | jq --arg foo "$1" 'map(has("pandas"))'
+        echo '[{ "matplotlib": 42, "bar": "less interesting data"},{ "pandas": 42, "bar": "less interesting data"}]' | jq --arg foo "$1" 'map(select(has($foo)))'
+
         # For every notebook file found in this directory perform the search
         echo "$files_list" | while IFS= read -r notebook_file; do
-
+            
             # Use jq to search the json for matches
-            found_source=$( (jq '.cells | .[] | select((.cell_type == "code") and (.metadata.pandas | type == "array")) | .source' | tr -d '[]') < "$notebook_file")
-
+            kapitsa_cells=$( (jq '.cells[] | select( (.cell_type == "code") and (.metadata.kapitsa | type == "object") ) | { kapitsa: .metadata.kapitsa, source }' ) < "$notebook_file")
+            
             # If there was a match, print the results
-            if [ ${#found_source} -ge 1 ]; then
+            if [ ${#kapitsa_cells} -ge 3 ]; then
                 echo "$notebook_file"
-                echo "$found_source"
+                # this works but select cannot seem to expand "$foo"
+                # echo "$kapitsa_cells" | jq --arg foo ".kapitsa.pandas" '. | select(.kapitsa.matplotlib | type == "array")'
+                # try
+                # https://stackoverflow.com/questions/40027395/passing-bash-variable-to-jq-select
+                echo "$kapitsa_cells" | jq --arg foo "$1" '. | .kapitsa | select(has($foo))'
             fi
 
         done;
@@ -85,7 +100,7 @@ if checkIfKapitsaEnv; then
     done;
 
 else
-    echo "Error: 'KAPITSA' env variable not set. Set KAPITSA to the path of .kapitsa config file."
+    echo -e "${CL_RED}Error:${CL_DEF} 'KAPITSA' env variable not set. Set ${CL_CYA}KAPITSA${CL_DEF} to the path of .kapitsa config file."
     printf 'Manually add the following to %s/.bash_profile (or similar)\n\n' "$HOME"
 	printf "export KAPITSA=\"\$HOME/.kapitsa\"\n\n"
     printConfigInfo

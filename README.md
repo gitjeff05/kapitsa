@@ -78,9 +78,9 @@ Add this directory to your path or just make an alias in your `.bash_profile`.
 > chmod u+rx kapitsa
 ```
 
-## Create `.kapista` configuration file.
+## Create `.kapitsa` configuration file.
 
-Create a `json` file `.kapista` with these contents and save it anywhere (`$HOME` is a good choice)
+Create a `json` file `.kapitsa` with these contents and save it anywhere (`$HOME` is a good choice)
 
 ```json
 {
@@ -121,11 +121,11 @@ The configuration file also accepts an optional argument, `ignore` which is pass
 
 # How it works
 
-Kapitsa uses functionality built into JupyterLab -- saveing metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "kap" at the root level.
+Kapitsa uses functionality built into JupyterLab -- saving metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "kap" at the root level.
 
 ```json
 {
-    "kap": [
+    "kapitsa": [
         { "{type}": ["keyword1", "keyword2"] }
     ]
 }
