@@ -4,7 +4,7 @@ Tag and search your jupyter documents (.ipynb) without an extension.
 
 ## Motivation
 
-Remembering the syntax for **complex** or **infrequent** operations is hard. Also, sharing code examples and best practices with your team is difficult. Using Jupyter's cell metadata feature and Kapitsa, users can tag cells to make searching and aggregating examples easier.
+Remembering the syntax for **complex** or **infrequent** operations in notebook environments is hard. Sharing code examples and best practices with the public is difficult. Using Jupyter's cell metadata feature and Kapitsa, users can tag cells to make searching and aggregating examples easier.
 
 ## Solution
 
@@ -26,31 +26,47 @@ cd6684
     .search { color: #ffae8f}
 </style> -->
 
-The following command finds jupyter cells tagged "*pandas*"
-
-
-```bash session
-> kapitsa pandas
-
-Found 2 matches for "pandas":
-
-# file: ./path/to/file.ipynb:126
-df.loc[df['Zips'].str.contains('\D', regex=True)]
-
-# file: ./path/to/other/file.ipynb:55
-df = pd.read_csv('./data.gzip', parse_dates=["START","END"], compression='gzip', dtype={ 'ZIP': 'str'})
-```
-
-This next command finds jupyter cells tagged "*pandas*" also, but only specific to keywords "loc" and "regex"
+## The following command finds jupyter cells tagged "*pandas*"
 
 ```bash session
-> kapitsa pandas loc regex
+> kapitsa "pandas"
 
-Found 1 match:
-
-# file: ./path/to/file.ipynb:126
-df.loc[df['Zips'].str.contains('\D', regex=True)]
+Found 8 tagged cells matching pattern pandas in ~/Github/kapitsa/examples/dataframe_nih_2019.ipynb
 ```
+
+## The output is json containing the source and tags for the cell matching the query.
+
+```jsonc
+/* Here is the first cell's output for the above query. */
+{
+  "source": [
+    "# Always use `copy()` whenever you assign a variable to a slice of your dataframe when that slice could be used for anything other than just reading.\n",
+    "us = df.loc[df['ORG_COUNTRY'] == 'UNITED STATES'].copy()"
+  ],
+  "tags": "copy loc pandas boolean"
+}
+...
+```
+
+# Jupyter
+
+```Jupyter Notebook
+us = df.loc[df['ORG_COUNTRY'] == 'UNITED STATES'].copy()
+```
+
+## This next command matches any cell tagged "series" or "dataframe".
+
+```bash session
+> kapitsa "series|dataframe"
+```
+
+## This next command matches any cell tagged "pandas" and "regex".
+
+```bash session
+> kapitsa "(?=.*pandas)(?=.*regex)"
+```
+
+*Note: The above command does seem ridiculously complex for an and statement but unfortunately it is required to work.*
 
 # Setup and install
 
@@ -64,15 +80,7 @@ Users must have [jq >= jq-1.6](https://stedolan.github.io/jq/) installed because
 > git clone https://github.com/gitjeff05/kapitsa
 ```
 
-## Put `kapitsa` in your `$PATH` or make an alias.
-
-Add this directory to your path or just make an alias in your `.bash_profile`.
-
-```bash session
-> alias kapitsa=$HOME/Github/kapitsa/kapitsa
-```
-
-## Make `kapitsa` file executable by the user.
+## Make sure `kapitsa` is executable by the user.
 
 ```bash session
 > chmod u+rx kapitsa
@@ -80,12 +88,8 @@ Add this directory to your path or just make an alias in your `.bash_profile`.
 
 ## Create `.kapitsa` configuration file.
 
-Create a `json` file `.kapitsa` with these contents and save it anywhere (`$HOME` is a good choice)
-
-```json
-{
-    "path": "$HOME/Projects"
-}
+```bash session
+echo '{"path":"$HOME/Github/kapitsa"}' > ~/.kapitsa
 ```
 
 ## Create a variable, `KAPITSA` that points to your config file.
@@ -93,45 +97,23 @@ Create a `json` file `.kapitsa` with these contents and save it anywhere (`$HOME
 ```bash
 export KAPITSA=$HOME/.kapitsa # add to your .bash_profile
 ```
+## (Optional) Put `kapitsa` in your `$PATH` or make an alias.
 
-## Too many steps? Here is an all-in-one (for the brave or knowledgeable):
-
-Warning: This *should* only append a few lines to your shell configuration file and create a couple of environment variables
+Add this directory to your path or just make an alias in your `.bash_profile`.
 
 ```bash session
-> KAPITSA_INSTALL="$HOME/Github/test" && \
-mkdir -p "$KAPITSA_INSTALL" && \
-cd "$KAPITSA_INSTALL" && \
-git clone https://github.com/gitjeff05/kapitsa && \
-cd kapitsa && chmod u+x,g-x,o-x kapitsa && \
-echo "alias kapitsa=$KAPITSA_INSTALL/kapitsa/kapitsa" >> "$HOME/.zshrc" && \
-echo "export KAPITSA=\$HOME/.kapitsa" >> "$HOME/.zshrc" && \
-echo '{"path":"$HOME/Projects"}' | jq . > "$KAPITSA" && \
-unset KAPITSA_INSTALL
-```
-
-The configuration file also accepts an optional argument, `ignore` which is passed to the command `find` to skip files in that directory.
-
-```json
-{
-    "path": "$HOME/projects:$HOME/github",
-    "ignore": ["*/.ipynb_checkpoints/*"]
-}
+> alias kapitsa=$HOME/Github/kapitsa/kapitsa
 ```
 
 # How it works
 
-Kapitsa uses functionality built into JupyterLab -- saving metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "kap" at the root level.
+Kapitsa uses functionality built into Jupyter and JupyterLab -- saving metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "kap" at the root level.
 
 ```json
 {
-    "kapitsa": [
-        { "{type}": ["keyword1", "keyword2"] }
-    ]
+    "tags": ["keyword1", "keyword2"]
 }
 ```
-
-where `{type}` is something like "pandas" or "numpy" -- this should be up to the user. The value supplied to `{type}` should be an array of strings representing keywords for that operation.
 
 # Notes on the implementation
 

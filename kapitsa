@@ -79,25 +79,25 @@ if checkIfKapitsaEnv; then
         echo "$files_list" | while IFS= read -r notebook_file; do
             
             # Find any cells that are code blocks and that contain the metadata attribute kapitsa
-            kapitsa_cells=$( (jq -r '.cells[] | select( (.cell_type == "code") and (.metadata.kapitsa | type == "object") ) | { kapitsa: .metadata.kapitsa, source }' ) < "$notebook_file")
+            kapitsa_cells=$( (jq -r '.cells[] | select( (.cell_type == "code") and (.metadata.tags | type == "array") ) | { tags: .metadata.tags, source }' ) < "$notebook_file")
             
             # If there was a match, print the results
             if [ ${#kapitsa_cells} -ge 1 ]; then
-
+                
                 # If program was run with just `kapitsa` then return everything
                 if [ -z "${SEARCH_DOMAIN}" ]; then
-                    echo "$kapitsa_cells" | jq '. | select(.kapitsa) | { source, keywords: .kapitsa }'
+                   
+                    out=$(echo "$kapitsa_cells" | jq -c '. | { source, tags: .tags | join(" ") }')
+                    total_len=$(echo "$out" | jq -s '. | length')
+                    echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells in ${CL_CYA}$notebook_file${CL_DEF}\n"
+                    echo "$out" | jq '.'
                     break
                 fi
 
-                # If program was run with a domain but no keyword print all results under domain
-                if [ -z "${2}" ]; then
-                    echo "$kapitsa_cells" | jq --arg foo "$SEARCH_DOMAIN" '. | select(.kapitsa | has($foo)) | { source, keywords: .kapitsa | .[$foo] }'
-                # If program was run with a domain and a keyword, print all results under domain that contain keyword
-                else
-                    cells_with_key=$(echo "$kapitsa_cells" | jq --arg foo "$SEARCH_DOMAIN" '. | select(.kapitsa | has($foo)) | { source, keywords: .kapitsa | .[$foo] }')
-                    echo "$cells_with_key" | jq --arg foo "$2" '. | select(.keywords | bsearch($foo) > -1)'
-                fi
+                cells_with_key=$(echo "$kapitsa_cells" | jq --arg foo "$SEARCH_DOMAIN" '. | select( .tags | join(" ") | test($foo, "ig") ) | { source, tags: .tags | join(" ") }')
+                total_len=$(echo "$cells_with_key" | jq -s '. | length')
+                echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells matching pattern $SEARCH_DOMAIN in ${CL_CYA}$notebook_file${CL_DEF}\n"
+                echo "$cells_with_key" | jq .                
 
             fi
 
