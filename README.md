@@ -84,7 +84,7 @@ Add this directory to your path or just make an alias in your `.bash_profile`.
 
 # How it works
 
-Kapitsa uses functionality built into Jupyter and JupyterLab -- saving metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "kap" at the root level.
+Kapitsa uses functionality built into Jupyter and JupyterLab -- saving metadata for a cell. To edit the metadata, open the "Notebook Tools" on the sidebar and look for "Cell Metadata". Users will edit this and add a key "tags" at the root level with an array of strings.
 
 ```json
 {
@@ -92,7 +92,7 @@ Kapitsa uses functionality built into Jupyter and JupyterLab -- saving metadata 
 }
 ```
 
-## (Optional) Install celltags extension 
+## (Optional) Install celltags extension for JupyterLab
 
 In the current version of JupyterLab, [the cell tagging UI](https://github.com/jupyterlab/jupyterlab/tree/master/packages/celltags) is not part of the core. You can still edit tags manually be editing the cell's json metadata. To install the cell tags UI, run the following:
 
@@ -104,7 +104,7 @@ In the current version of JupyterLab, [the cell tagging UI](https://github.com/j
 
 Under the hood Kapitsa uses [jq regular expressions (PCRE)](https://stedolan.github.io/jq/manual/#RegularexpressionsPCRE) through the `test` method. Anything you can pass to jq's `test` method should also be valid for Kapitsa. Please open a ticket if you find any functionality missing.
 
-# Notes on the implementation
+# Notes on implementation
 
 This script is meant to be minimal. Most of it is done through `find` and `jq`. I have not included comprehensive install scripts that would do a lot of the setup for you (e.g., editing `.bash_profile` or adding files to your `$HOME` directory). Users should be at least somewhat familiar with the command line (i.e., knowledge of `.bash_profile` (or similar), `alias` and `chmod`). Anyone can read the contents of `kapitsa` and know that it simply reads some files and produces an output. Please [open an issue](https://github.com/gitjeff05/kapitsa/issues) to file a bug or request a feature.
 
