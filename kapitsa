@@ -86,7 +86,6 @@ if checkIfKapitsaEnv; then
                 
                 # If program was run with just `kapitsa` then return everything
                 if [ -z "${SEARCH_DOMAIN}" ]; then
-                   
                     out=$(echo "$kapitsa_cells" | jq -c '. | { source, tags: .tags | join(" ") }')
                     total_len=$(echo "$out" | jq -s '. | length')
                     echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells in ${CL_CYA}$notebook_file${CL_DEF}\n"

@@ -4,29 +4,18 @@ Tag and search your jupyter documents (.ipynb) without an extension.
 
 ## Motivation
 
-Remembering the syntax for **complex** or **infrequent** operations in notebook environments is hard. Sharing code examples and best practices with the public is difficult. Using Jupyter's cell metadata feature and Kapitsa, users can tag cells to make searching and aggregating examples easier.
+Remembering the syntax for **complex** or **infrequent** operations in notebook environments is hard. Using Jupyter's cell metadata feature and Kapitsa, users can tag cells to make searching and aggregating examples easier.
 
 ## Solution
 
-Kapitsa is a simple script that scans **jupyter tagged code cells** from .ipynb files for keywords and returns the source and path to the file. Users provide a configuration file to specify paths to search and begin tagging cells with their own examples. This way authors build their own library of examples and best practices to call up from the command line at any time.
+Kapitsa is a simple script that scans **jupyter tagged code cells** from .ipynb files for keywords and returns the source and path to the file. Users provide a configuration file to specify paths to search and begin tagging cells with their own examples. 
 
-# Example
-<!-- 
-https://colorhunt.co/palette/170332
-ffae8f
-ff677d
-cd6684
-6f5a7e 
--->
+## Benefits 
+Authors can build their own library of examples and best practices through notebooks, something they already use and share. Getting another authors code examples is as easy as pulling down their shared notebooks and adding that local path to the `.kapitsa` config file.
 
-<!-- <style>
-    .host { color: #6f5a7e }
-    .prompt { color: #6f5a7e } 
-    .kapitsa { color: #ff677d }
-    .search { color: #ffae8f}
-</style> -->
+# Examples
 
-## The following command finds jupyter cells tagged "*pandas*"
+## The following command finds jupyter cells tagged "*pandas*".
 
 ```bash session
 > kapitsa "pandas"
@@ -34,24 +23,17 @@ cd6684
 Found 8 tagged cells matching pattern pandas in ~/Github/kapitsa/examples/dataframe_nih_2019.ipynb
 ```
 
-## The output is json containing the source and tags for the cell matching the query.
-
 ```jsonc
 /* Here is the first cell's output for the above query. */
+/* The output is json containing source of the cell with tags */
 {
   "source": [
-    "# Always use `copy()` whenever you assign a variable to a slice of your dataframe when that slice could be used for anything other than just reading.\n",
+    "# Use `copy()` when assigning a variable to a slice of a dataframe when that variable could be used for anything other than reading.\n",
     "us = df.loc[df['ORG_COUNTRY'] == 'UNITED STATES'].copy()"
   ],
   "tags": "copy loc pandas boolean"
 }
 ...
-```
-
-# Jupyter
-
-```Jupyter Notebook
-us = df.loc[df['ORG_COUNTRY'] == 'UNITED STATES'].copy()
 ```
 
 ## This next command matches any cell tagged "series" or "dataframe".
@@ -66,7 +48,7 @@ us = df.loc[df['ORG_COUNTRY'] == 'UNITED STATES'].copy()
 > kapitsa "(?=.*pandas)(?=.*regex)"
 ```
 
-*Note: The above command does seem ridiculously complex for an and statement but unfortunately it is required to work.*
+*Note: The above command does seem ridiculously complex for an `and` statement but unfortunately it is required to work.*
 
 # Setup and install
 
@@ -74,28 +56,23 @@ us = df.loc[df['ORG_COUNTRY'] == 'UNITED STATES'].copy()
 
 Users must have [jq >= jq-1.6](https://stedolan.github.io/jq/) installed because you need something to parse notebook documents (.ipynb) which are json.
 
-## Clone or download the repo.
+## Clone the repo.
 
 ```bash session
 > git clone https://github.com/gitjeff05/kapitsa
-```
-
-## Make sure `kapitsa` is executable by the user.
-
-```bash session
-> chmod u+rx kapitsa
+> cd kapitsa && chmod u+rx kapitsa # Make `kapitsa` executable by the user.
 ```
 
 ## Create `.kapitsa` configuration file.
 
 ```bash session
-echo '{"path":"$HOME/Github/kapitsa"}' > ~/.kapitsa
+> echo '{"path":"$HOME/Github/kapitsa"}' > ~/.kapitsa
 ```
 
 ## Create a variable, `KAPITSA` that points to your config file.
 
-```bash
-export KAPITSA=$HOME/.kapitsa # add to your .bash_profile
+```bash session
+> export KAPITSA=$HOME/.kapitsa # add to your .bash_profile
 ```
 ## (Optional) Put `kapitsa` in your `$PATH` or make an alias.
 
@@ -115,11 +92,21 @@ Kapitsa uses functionality built into Jupyter and JupyterLab -- saving metadata 
 }
 ```
 
+## (Optional) Install celltags extension 
+
+In the current version of JupyterLab, [the cell tagging UI](https://github.com/jupyterlab/jupyterlab/tree/master/packages/celltags) is not part of the core. You can still edit tags manually be editing the cell's json metadata. To install the cell tags UI, run the following:
+
+```bash session
+> jupyter labextension install @jupyterlab/celltags
+```
+
+# Advanced queries
+
+Under the hood Kapitsa uses [jq regular expressions (PCRE)](https://stedolan.github.io/jq/manual/#RegularexpressionsPCRE) through the `test` method. Anything you can pass to jq's `test` method should also be valid for Kapitsa. Please open a ticket if you find any functionality missing.
+
 # Notes on the implementation
 
-This search script is meant to be minimal. As such, I have not included comprehensive install scripts that would do a lot of the setup for you (e.g., editing `.bash_profile` or installing in your `$HOME` directory). At the moment, I will assume consumers of this package are at least somewhat familiar with the command line and can do things like edit `.bash_profile` (or similar), create an `alias` and modify some permissions with `chmod`. Personally, I like the transparency of knowing what my scripts are doing. Anyone can read the contents of `kapitsa` and know that it simply parses some files and outputs. Please [open an issue](https://github.com/gitjeff05/kapitsa/issues) if you see anything in the script that might be a security vulnerability.
-
-The main (and only) script simply reads `code` cells from .ipynb files and filters on the `metadata` attribute by the parameters passed in by the user. It outputs the contents of the `source` along with the line number and full path to the file. If seeing the source outside of the context is not enough, users can open the notebook and go through the example.
+This script is meant to be minimal. Most of it is done through `find` and `jq`. I have not included comprehensive install scripts that would do a lot of the setup for you (e.g., editing `.bash_profile` or adding files to your `$HOME` directory). Users should be at least somewhat familiar with the command line (i.e., knowledge of `.bash_profile` (or similar), `alias` and `chmod`). Anyone can read the contents of `kapitsa` and know that it simply reads some files and produces an output. Please [open an issue](https://github.com/gitjeff05/kapitsa/issues) to file a bug or request a feature.
 
 # Security 
 
@@ -130,7 +117,7 @@ I have done my best to ensure that this code can do no harm. The primary use of 
 - A default set of examples for some languages/frameworks (e.g., python, pandas, numpy, scikit)
 - Caching cell metadata to make searches faster
 - Fetching metadata and source from remote locations. Users could essentially "subscribe" to other authors' preferred examples the same way bash users borrow shell configurations (.dotfiles) from authors.
-- A JupyterLab extension so that users can easily tag cells without typing up json.
+- A JupyterLab extension to facilitate the search right inside of JupyterLab.
 
 # License
 MIT License. See LICENSE.md
