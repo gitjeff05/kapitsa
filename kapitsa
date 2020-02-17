@@ -1,16 +1,19 @@
 #!/bin/bash
 
 set -e
-CL_DEF="\033[39m"
-CL_RED="\033[31m"
-CL_CYA="\033[36m"
 
-SEARCH_STR="$1"
-META_SEARCH=".metadata.kapitsa.$SEARCH_STR"
-echo "$META_SEARCH"
+# Define a few colors for output
+# https://misc.flogisoft.com/bash/tip_colors_and_formatting#terminals_compatibility
+CL_DEF="\033[39m\033[49m"
+CL_RED="\033[31m"
+CL_CYA="\033[36m\033[40m"
+CL_YEL="\033[33m\033[40m"
+
+SEARCH_DOMAIN="$1"
+
 # Check if the KAPITSA env var has been set
 checkIfKapitsaEnv() {
-    if [ -z "${KAPITSA}" ]; then
+    if [ -z "$KAPITSA" ]; then
         return 1
     else
         return 0
@@ -19,11 +22,11 @@ checkIfKapitsaEnv() {
 
 # Print .kapitsa config example
 printConfigInfo() {
-    echo "The .kapitsa config json requires a key, \"path\" whos value must point to a directory."
-    echo "Multiple directories are allowed but must be separated by a colon (:)"
-    printf "\nOnly absolute paths or paths using the \$HOME environment variable are valid values for \"path\".\n"
-    echo "For example \"\$HOME/path/to/dir:/Users/everyone/notebooks\" is valid"
-    printf "while \"\$NOTEBOOKS/dir:/Users/everyone/notebooks\" is invalid because \$NOTEBOOKS is not allowed.\n\n"
+    echo -e "Kapitsa uses a json configuration file to know where to search for .ipynb files.\nThe value of \"path\" in the ${CL_CYA}.kapitsa${CL_DEF} config file must point to a valid path."
+    echo "Multiple paths are allowed but must be separated by a colon (:)"
+    echo -e "Only absolute paths or paths using the ${CL_CYA}\$HOME${CL_DEF} environment variable are valid.\n"
+    echo -e "For example \"${CL_CYA}\$HOME/path/to/dir:/Users/everyone/notebooks${CL_DEF}\" is valid"
+    echo -e  "while \"${CL_CYA}\$NOTEBOOKS/dir:/Users/everyone/notebooks${CL_DEF}\" is not because \$NOTEBOOKS is not allowed.\n"
     echo "{\"path\":\"\$HOME/projects:\$HOME/github\",\"ignore\":[\".ipynb_checkpoints/*\"],\"namespace\":\"kapitsa\"}" | jq .
 }
 
@@ -32,15 +35,14 @@ if checkIfKapitsaEnv; then
 
     # Make sure $KAPITSA is pointing to a file.
     if [ ! -f "$KAPITSA" ]; then
-        echo -e "Default \e[91mLight red"
-        echo -e "\e[91mError: Could not find .kapitsa configuration file at $KAPITSA."
+        echo -e "${CL_RED}Error${CL_DEF}: Could not find ${CL_CYA}.kapitsa${CL_DEF} configuration file at ${CL_CYA}$KAPITSA${CL_DEF}.\n"
         printConfigInfo
         exit 1
     fi
 
     # Make sure the json file has a path key and that it is a string
     if [ ! "$(jq '. | select(.path|type=="string")' < "$KAPITSA")" ]; then
-        printf "Error: Invalid or missing required key \"path\" in json file.\n\n"
+        echo -e "${CL_RED}Error${CL_DEF}: Invalid or missing required key \"path\" in json file.\n"
         printConfigInfo
         exit 1
     fi
@@ -66,33 +68,37 @@ if checkIfKapitsaEnv; then
 
         # break out if directory is not valid
         if [ ! -d "$directory" ]; then
-            printf "\nWarning: %s could not be searched because it is not a valid directory. Make sure your .kapitsa config file contains a valid directory.\n" "$directory"
+            echo -e "${CL_YEL}Warning${CL_DEF}: $directory not a valid directory. Make sure your ${CL_CYA}.kapitsa${CL_DEF} config file contains a valid directory."
             break
         fi
-
-        echo "Searching: ${directory}"
 
         # Get a list of all the files to iterate over
         files_list=$(find "$directory" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" -prune -print)
 
-        # echo '{ "matplotlib": 42, "bar": "less interesting data"}' | jq --arg foo "$1" '.[$foo]'
-        # echo '[{ "matplotlib": 42, "bar": "less interesting data"},{ "pandas": 42, "bar": "less interesting data"}]' | jq --arg foo "$1" 'map(has("pandas"))'
-        echo '[{ "matplotlib": 42, "bar": "less interesting data"},{ "pandas": 42, "bar": "less interesting data"}]' | jq --arg foo "$1" 'map(select(has($foo)))'
-
         # For every notebook file found in this directory perform the search
         echo "$files_list" | while IFS= read -r notebook_file; do
             
-            # Use jq to search the json for matches
-            kapitsa_cells=$( (jq '.cells[] | select( (.cell_type == "code") and (.metadata.kapitsa | type == "object") ) | { kapitsa: .metadata.kapitsa, source }' ) < "$notebook_file")
+            # Find any cells that are code blocks and that contain the metadata attribute kapitsa
+            kapitsa_cells=$( (jq -r '.cells[] | select( (.cell_type == "code") and (.metadata.kapitsa | type == "object") ) | { kapitsa: .metadata.kapitsa, source }' ) < "$notebook_file")
             
             # If there was a match, print the results
-            if [ ${#kapitsa_cells} -ge 3 ]; then
-                echo "$notebook_file"
-                # this works but select cannot seem to expand "$foo"
-                # echo "$kapitsa_cells" | jq --arg foo ".kapitsa.pandas" '. | select(.kapitsa.matplotlib | type == "array")'
-                # try
-                # https://stackoverflow.com/questions/40027395/passing-bash-variable-to-jq-select
-                echo "$kapitsa_cells" | jq --arg foo "$1" '. | .kapitsa | select(has($foo))'
+            if [ ${#kapitsa_cells} -ge 1 ]; then
+
+                # If program was run with just `kapitsa` then return everything
+                if [ -z "${SEARCH_DOMAIN}" ]; then
+                    echo "$kapitsa_cells" | jq '. | select(.kapitsa) | { source, keywords: .kapitsa }'
+                    break
+                fi
+
+                # If program was run with a domain but no keyword print all results under domain
+                if [ -z "${2}" ]; then
+                    echo "$kapitsa_cells" | jq --arg foo "$SEARCH_DOMAIN" '. | select(.kapitsa | has($foo)) | { source, keywords: .kapitsa | .[$foo] }'
+                # If program was run with a domain and a keyword, print all results under domain that contain keyword
+                else
+                    cells_with_key=$(echo "$kapitsa_cells" | jq --arg foo "$SEARCH_DOMAIN" '. | select(.kapitsa | has($foo)) | { source, keywords: .kapitsa | .[$foo] }')
+                    echo "$cells_with_key" | jq --arg foo "$2" '. | select(.keywords | bsearch($foo) > -1)'
+                fi
+
             fi
 
         done;
@@ -100,8 +106,8 @@ if checkIfKapitsaEnv; then
     done;
 
 else
-    echo -e "${CL_RED}Error:${CL_DEF} 'KAPITSA' env variable not set. Set ${CL_CYA}KAPITSA${CL_DEF} to the path of .kapitsa config file."
-    printf 'Manually add the following to %s/.bash_profile (or similar)\n\n' "$HOME"
-	printf "export KAPITSA=\"\$HOME/.kapitsa\"\n\n"
+    echo -e "${CL_RED}Error:${CL_DEF} 'KAPITSA' env variable not set. Set ${CL_CYA}KAPITSA${CL_DEF} to the path of your ${CL_CYA}.kapitsa${CL_DEF} config file."
+    printf 'Either run the following or manually add it to %s/.bash_profile (or similar)\n\n' "$HOME"
+	echo -e "${CL_CYA}export${CL_DEF} KAPITSA=\"\$HOME/.kapitsa\"\n"
     printConfigInfo
 fi

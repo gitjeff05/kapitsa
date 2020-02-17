@@ -72,7 +72,7 @@ Add this directory to your path or just make an alias in your `.bash_profile`.
 > alias kapitsa=$HOME/Github/kapitsa/kapitsa
 ```
 
-## Make `kapitsa` file executable by the owner.
+## Make `kapitsa` file executable by the user.
 
 ```bash session
 > chmod u+rx kapitsa
