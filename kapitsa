@@ -1,112 +1,265 @@
 #!/bin/bash
 
-set -e
-
 # Define a few colors for output
 # https://misc.flogisoft.com/bash/tip_colors_and_formatting#terminals_compatibility
 CL_DEF="\033[39m\033[49m"
 CL_RED="\033[31m"
-CL_CYA="\033[36m\033[40m"
-CL_YEL="\033[33m\033[40m"
-
-SEARCH_DOMAIN="$1"
-
-# Check if the KAPITSA env var has been set
-checkIfKapitsaEnv() {
-    if [ -z "$KAPITSA" ]; then
-        return 1
-    else
-        return 0
-    fi
-}
+CL_CYA="\033[36m\033[49m"
+CL_YEL="\033[33m\033[49m"
 
 # Print .kapitsa config example
-printConfigInfo() {
-    echo -e "Kapitsa uses a json configuration file to know where to search for .ipynb files.\nThe value of \"path\" in the ${CL_CYA}.kapitsa${CL_DEF} config file must point to a valid path."
-    echo "Multiple paths are allowed but must be separated by a colon (:)"
-    echo -e "Only absolute paths or paths using the ${CL_CYA}\$HOME${CL_DEF} environment variable are valid.\n"
-    echo -e "For example \"${CL_CYA}\$HOME/path/to/dir:/Users/everyone/notebooks${CL_DEF}\" is valid"
-    echo -e  "while \"${CL_CYA}\$NOTEBOOKS/dir:/Users/everyone/notebooks${CL_DEF}\" is not because \$NOTEBOOKS is not allowed.\n"
-    echo "{\"path\":\"\$HOME/projects:\$HOME/github\",\"ignore\":[\".ipynb_checkpoints/*\"],\"namespace\":\"kapitsa\"}" | jq .
+print_config_info() {
+  echo -e "Kapitsa uses a json configuration file to know where to search for .ipynb files.\nThe value of \"path\" in the ${CL_CYA}.kapitsa${CL_DEF} config file must point to a valid path."
+  echo "Multiple paths are allowed but must be separated by a colon (:)"
+  echo -e "Only absolute paths or paths using the ${CL_CYA}\$HOME${CL_DEF} environment variable are valid.\n"
+  echo -e "For example \"${CL_CYA}\$HOME/path/to/dir:/Users/everyone/notebooks${CL_DEF}\" is valid"
+  echo -e "while \"${CL_CYA}\$NOTEBOOKS/dir:/Users/everyone/notebooks${CL_DEF}\" is not because \$NOTEBOOKS is not allowed.\n"
+  echo "{\"path\":\"\$HOME/projects:\$HOME/github\"}" | jq .
 }
 
-# Before we begin, make sure the $KAPITSA env variable is set.
-if checkIfKapitsaEnv; then
-
-    # Make sure $KAPITSA is pointing to a file.
-    if [ ! -f "$KAPITSA" ]; then
-        echo -e "${CL_RED}Error${CL_DEF}: Could not find ${CL_CYA}.kapitsa${CL_DEF} configuration file at ${CL_CYA}$KAPITSA${CL_DEF}.\n"
-        printConfigInfo
-        exit 1
-    fi
-
-    # Make sure the json file has a path key and that it is a string
-    if [ ! "$(jq '. | select(.path|type=="string")' < "$KAPITSA")" ]; then
-        echo -e "${CL_RED}Error${CL_DEF}: Invalid or missing required key \"path\" in json file.\n"
-        printConfigInfo
-        exit 1
-    fi
-
-    # Get a list of paths on separate lines
-    path_list=$(jq '.path' < "$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
-    
-    # If path contains $HOME, ensure that it is defined
-    if [[ $path_list =~ "\$HOME" ]]; then
-        if [ -z "${HOME}" ]; then
-            printf "You specified \$HOME in your \"path\" but your \$HOME environment variable is not set.\n\n"
-            printf "\"path\": \"%s\"\n\n" "$(jq '.path' < "$KAPITSA" | tr -d '[][:space:]"')"
-            printConfigInfo
-            exit 1
-        fi
-    fi
-
-    # replace string $HOME with expanded shell variable $HOME
-    paths="${path_list//\$HOME/$HOME}"
-    
-    # Run the search on each directory specified
-    echo "$paths" | while IFS= read -r directory; do
-
-        # break out if directory is not valid
-        if [ ! -d "$directory" ]; then
-            echo -e "${CL_YEL}Warning${CL_DEF}: $directory not a valid directory. Make sure your ${CL_CYA}.kapitsa${CL_DEF} config file contains a valid directory."
-            break
-        fi
-
-        # Get a list of all the files to iterate over
-        files_list=$(find "$directory" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" -prune -print)
-
-        # For every notebook file found in this directory perform the search
-        echo "$files_list" | while IFS= read -r notebook_file; do
-            
-            # Find any cells that are code blocks and that contain the metadata attribute kapitsa
-            kapitsa_cells=$( (jq -r '.cells[] | select( (.cell_type == "code") and (.metadata.tags | type == "array") ) | { tags: .metadata.tags, source }' ) < "$notebook_file")
-            
-            # If there was a match, print the results
-            if [ ${#kapitsa_cells} -ge 1 ]; then
-                
-                # If program was run with just `kapitsa` then return everything
-                if [ -z "${SEARCH_DOMAIN}" ]; then
-                    out=$(echo "$kapitsa_cells" | jq -c '. | { source, tags: .tags | join(" ") }')
-                    total_len=$(echo "$out" | jq -s '. | length')
-                    echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells in ${CL_CYA}$notebook_file${CL_DEF}\n"
-                    echo "$out" | jq '.'
-                    break
-                fi
-
-                cells_with_key=$(echo "$kapitsa_cells" | jq --arg foo "$SEARCH_DOMAIN" '. | select( .tags | join(" ") | test($foo, "ig") ) | { source, tags: .tags | join(" ") }')
-                total_len=$(echo "$cells_with_key" | jq -s '. | length')
-                echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells matching pattern $SEARCH_DOMAIN in ${CL_CYA}$notebook_file${CL_DEF}\n"
-                echo "$cells_with_key" | jq .                
-
-            fi
-
-        done;
-
-    done;
-
-else
+# Check if the KAPITSA env var has been set
+check_kapitsa_env_variable() {
+  echo "checking for env variable"
+  if [ -z "$KAPITSA" ]; then
     echo -e "${CL_RED}Error:${CL_DEF} 'KAPITSA' env variable not set. Set ${CL_CYA}KAPITSA${CL_DEF} to the path of your ${CL_CYA}.kapitsa${CL_DEF} config file."
     printf 'Either run the following or manually add it to %s/.bash_profile (or similar)\n\n' "$HOME"
-	echo -e "${CL_CYA}export${CL_DEF} KAPITSA=\"\$HOME/.kapitsa\"\n"
-    printConfigInfo
-fi
+    echo -e "${CL_CYA}export${CL_DEF} KAPITSA=\"\$HOME/.kapitsa\"\n"
+    print_config_info
+    return 1
+  else
+    return 0
+  fi
+}
+
+# Ensure kapitsa environment variable is set and
+# and config file contains valid path
+check_kapitsa_config() {
+  echo "checking for config"
+  # Make sure $KAPITSA is pointing to a file.
+  if [ ! -f "$KAPITSA" ]; then
+    echo -e "${CL_RED}Error${CL_DEF}: Could not find ${CL_CYA}.kapitsa${CL_DEF} configuration file at ${CL_CYA}$KAPITSA${CL_DEF}.\n"
+    print_config_info
+    return 1
+  fi
+  # Make sure the json file has a path key and that it is a string
+  if [ ! "$(jq '. | select(.path|type=="string")' <"$KAPITSA")" ]; then
+    echo -e "${CL_RED}Error${CL_DEF}: Invalid or missing required key \"path\" in json file.\n"
+    print_config_info
+    return 1
+  fi
+}
+
+# Print help info
+kapitsa_help() {
+  echo -e "kapitsa help:\n"
+  echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}            List all paths containing .ipynb files"
+  echo -e "${CL_CYA}kapitsa ${CL_RED}search regex [-p path]${CL_DEF} Output all cells matching on regex.
+                               Supply optional path, otherwise search paths defined in kapitsa config."
+  echo -e "Examples\n"
+  echo -e "${CL_CYA}kapitsa ${CL_RED}list .${CL_DEF}                   Lists all paths in current directory containing .ipynb files"
+  echo -e "${CL_CYA}kapitsa ${CL_RED}search \"join\" ${CL_DEF}           Print code cells matching \"join\""
+  echo -e "${CL_CYA}kapitsa ${CL_RED}search \"(join|concat)\" ${CL_DEF}  Print code cells matching on \"join\" or \"concat\"\n"
+}
+
+check_settings() {
+  local path_list
+
+  check_kapitsa_env_variable && check_kapitsa_config
+
+  # Get a list of paths on separate lines
+  path_list=$(jq '.path' <"$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
+  # If path contains $HOME, ensure that it is defined
+  if [[ $path_list =~ "\$HOME" ]]; then
+    if [ -z "${HOME}" ]; then
+      printf "You specified \$HOME in your \"path\" but your \$HOME environment variable is not set.\n\n"
+      printf "\"path\": \"%s\"\n\n" "$(jq '.path' <"$KAPITSA" | tr -d '[][:space:]"')"
+      print_config_info
+      return 1
+    fi
+  fi
+
+}
+
+kapitsa_search() {
+
+  local search_string
+  local path_list
+  local paths
+
+  # search string that was passed in
+  search_string="$1"
+
+  # Get a list of paths on separate lines
+  path_list=$(jq '.path' <"$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
+
+  # replace string $HOME with expanded shell variable $HOME
+  paths="${path_list//\$HOME/$HOME}"
+
+  # Run the search on each directory specified
+  while IFS= read -r directory; do
+
+    # break out if directory is not valid
+    if [ ! -d "$directory" ]; then
+      echo -e "${CL_YEL}Warning${CL_DEF}: $directory not a valid directory. Make sure your ${CL_CYA}.kapitsa${CL_DEF} config file contains a valid directory."
+      break
+    fi
+
+    find_in_notebook_source "${directory}" "${search_string}"
+
+    # TODO(jeff): Make searching for tags option
+    # Get a list of all the files to iterate over
+    # files_list=$(find "$directory" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" \! -path "*reddit*" -prune -print)
+    # echo "files"
+    # echo "$files_list"
+    # # For every notebook file found in this directory perform the search
+    # while IFS= read -r notebook_file; do
+
+    #   # Find any cells that are code blocks and that contain the metadata attribute kapitsa
+    #   kapitsa_cells=$( (jq -r '.cells[] | select( (.cell_type == "code") and (.metadata.tags | type == "array") ) | { tags: .metadata.tags, source }') <"$notebook_file")
+
+    #   # If there was a match, print the results
+    #   if [ ${#kapitsa_cells} -ge 1 ]; then
+
+    #     # If program was run with just `kapitsa` then return everything
+    #     if [ -z "${search_string}" ]; then
+    #       out=$(echo "$kapitsa_cells" | jq -c '. | { source, tags: .tags | join(" ") }')
+    #       total_len=$(echo "$out" | jq -s '. | length')
+    #       echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells in ${CL_CYA}$notebook_file${CL_DEF}\n"
+    #       echo "$out" | jq '.'
+    #       break
+    #     fi
+
+    #     cells_with_key=$(echo "$kapitsa_cells" | jq --arg foo "$search_string" '. | select( .tags | join(" ") | test($foo, "ig") ) | { source, tags: .tags | join(" ") }')
+    #     total_len=$(echo "$cells_with_key" | jq -s '. | length')
+    #     echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells matching pattern $search_string in ${CL_CYA}$notebook_file${CL_DEF}\n"
+    #     echo "$cells_with_key" | jq .
+
+    #   fi
+
+    # done < <(echo "$files_list")
+  done < <(echo "$paths")
+
+}
+
+get_array_bash() {
+    # local IFS
+    # IFS=$'\n' read -d '' -r -a arr <<< "$1"
+    # echo "${arr[@]}"
+    array=()
+    while IFS='' read -r line; do array+=("$line"); done < <(echo "$1")
+    echo "${array[@]}"
+}
+
+kapitsa() {
+  echo "$@"
+  echo "$1"
+  # The command passed to kapitsa [list|search|help]
+  local option
+
+  # check settings to make sure env variable is set
+  # and config file is set
+  check_settings
+
+  # set option to 1st argument
+  option="$1"
+
+  # if [help|h|-h|-help] print help info
+  if [[ "$option" == "help" ]] || [[ "$option" == "h" ]] || [[ "$option" == "-h" ]] || [[ "$option" == "-help" ]]; then
+
+    kapitsa_help
+
+  # list notebooks
+  elif [[ "$option" == "list" ]] || [[ "$option" == "l" ]]; then
+
+    local notebooks
+    local count
+
+    # call ./lib/find_notebook_directories to get a list of directories
+    # containing .ipynb files
+    notebooks=$(find_notebook_directories "$2")
+
+    # build an array from the results
+    array=()
+    while IFS=$'\n' read -r line; do array+=("$line"); done <<< "$notebooks"
+
+    # count members of array
+    count="${#array[@]}"
+
+    # This is for bash/zsh interop.
+    # For some reason 0th element is always unset in both bash/zsh
+    # 1st element is set if array has > 0 members
+    # However, passing current path "." results in the 0th member being set
+    # (todo jeff): more testing arount this
+    if [[ -z "${array[1]}" ]] && [[ -z "${array[0]}" ]]; then
+      echo "set count to 0"
+      count=0
+    fi
+
+    echo "Found ${count} directories containing notebooks."
+    echo "$notebooks"
+
+  elif [[ "$option" == "search" ]] || [[ "$option" == "s" ]]; then
+
+    local args
+    local search_arguments
+
+    args=("$@")
+    search_arguments=("${args[@]:1}")
+
+    if [[ "${#search_arguments[@]}" -eq 1 ]]; then
+
+      # Only the search regex was passed. Do default search across config paths
+      kapitsa_search "${search_arguments[1]}"
+
+    elif [[ "${#search_arguments[@]}" -eq 3 ]]; then
+
+      # Three arguments supplied. User is trying to supply a path to search
+
+      # Check to make sure 2nd arg was the '-p' flag
+      if [[ "${search_arguments[2]}" != "-p" ]]; then
+        echo -e "Incorrect argument order. Optional third argument must be -p followed by a valid path.\n"
+        kapitsa_help
+        return 1
+      fi
+
+      # Pass arguments to find_in_notebook_source
+      find_in_notebook_source "${search_arguments[3]}" "${search_arguments[1]}"
+
+    else
+
+      echo -e "Incorrect number of arguments\n"
+      kapitsa_help
+      return 1
+
+    fi
+
+  else
+    echo -e "Incorrect arguments\n"
+    kapitsa_help
+    return 1
+  fi
+
+}
+
+# Main is run when we source ./kapitsa.
+# It then sources the other functions in lib
+main() {
+  # check settings to make sure env variable is set
+  # and config file is set
+  check_settings
+
+  # create array of libraries to source
+  local libraries
+  libraries=('find_notebook_directories' 'find_in_notebook_source')
+
+  # source libraries
+  for i in "${libraries[@]}"; do
+    if [[ -r "./lib/$i.sh" ]] && [[ -f "./lib/$i.sh" ]]; then
+      # shellcheck source=lib/find_notebooks.sh
+      # shellcheck disable=SC1091
+      . "./lib/$i.sh"
+    fi
+  done
+}
+
+main "$@"
