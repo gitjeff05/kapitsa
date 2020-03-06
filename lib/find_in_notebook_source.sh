@@ -20,7 +20,7 @@ find_in_notebook_source() {
     echo "find_in_notebook_source . \"(pandas|numpy)\""
     echo "find_in_notebook_source . \"(?=.*read_csv)(?=.*parse_dates)\""
     return 1
-  fi;
+  fi
 
   # Check if valid directory
   if [[ -d "$SEARCH_DIRECTORY" ]]; then

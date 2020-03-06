@@ -19,7 +19,6 @@ print_config_info() {
 
 # Check if the KAPITSA env var has been set
 check_kapitsa_env_variable() {
-  echo "checking for env variable"
   if [ -z "$KAPITSA" ]; then
     echo -e "${CL_RED}Error:${CL_DEF} 'KAPITSA' env variable not set. Set ${CL_CYA}KAPITSA${CL_DEF} to the path of your ${CL_CYA}.kapitsa${CL_DEF} config file."
     printf 'Either run the following or manually add it to %s/.bash_profile (or similar)\n\n' "$HOME"
@@ -34,7 +33,6 @@ check_kapitsa_env_variable() {
 # Ensure kapitsa environment variable is set and
 # and config file contains valid path
 check_kapitsa_config() {
-  echo "checking for config"
   # Make sure $KAPITSA is pointing to a file.
   if [ ! -f "$KAPITSA" ]; then
     echo -e "${CL_RED}Error${CL_DEF}: Could not find ${CL_CYA}.kapitsa${CL_DEF} configuration file at ${CL_CYA}$KAPITSA${CL_DEF}.\n"
@@ -80,12 +78,22 @@ check_settings() {
 
 }
 
+get_kapitsa_paths() {
+  # Get a list of paths on separate lines
+  path_list=$(jq '.path' <"$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
+
+  # replace string $HOME with expanded shell variable $HOME
+  paths="${path_list//\$HOME/$HOME}"
+  echo "$paths"
+}
+
 kapitsa_search() {
 
   local search_string
   local path_list
   local paths
 
+  # (todo jeff) zsh & bash arguments ordering
   # search string that was passed in
   search_string="$1"
 
@@ -141,18 +149,12 @@ kapitsa_search() {
 
 }
 
-get_array_bash() {
-    # local IFS
-    # IFS=$'\n' read -d '' -r -a arr <<< "$1"
-    # echo "${arr[@]}"
-    array=()
-    while IFS='' read -r line; do array+=("$line"); done < <(echo "$1")
-    echo "${array[@]}"
-}
-
+#######################################
+# kapitsa is the entry point
+# Arguments:
+#   [help|list|recent|search]
+#######################################
 kapitsa() {
-  echo "$@"
-  echo "$1"
   # The command passed to kapitsa [list|search|help]
   local option
 
@@ -171,32 +173,91 @@ kapitsa() {
   # list notebooks
   elif [[ "$option" == "list" ]] || [[ "$option" == "l" ]]; then
 
-    local notebooks
-    local count
+    local kapitsa_paths
+    local all_dirs
+    local all
 
-    # call ./lib/find_notebook_directories to get a list of directories
-    # containing .ipynb files
-    notebooks=$(find_notebook_directories "$2")
+    kapitsa_paths=$(get_kapitsa_paths)
 
-    # build an array from the results
-    array=()
-    while IFS=$'\n' read -r line; do array+=("$line"); done <<< "$notebooks"
+    if [[ -z "$2" ]]; then
+      # Run the search on each directory specified
+      echo "search default paths"
+      all_dirs=()
+      while IFS= read -r directory; do
+        local nbs
+        nbs=$(find_notebook_directories "${directory}" 1)
+        while IFS=$'\n' read -r line; do all_dirs+=("$line"); done <<<"$nbs"
+      done <<<"$kapitsa_paths"
 
-    # count members of array
-    count="${#array[@]}"
+      all=$(
+        IFS=$'\n'
+        echo "${all_dirs[*]}"
+      )
+      all_directories=()
+      while IFS=$'\n' read -r line; do all_directories+=("$line"); done < <(echo "$all" |
+        grep -o "\(.*\)/" |
+        sort -u)
+      echo "$(
+        IFS=$'\n'
+        echo "${all_directories[*]}"
+      )"
+      echo "Found ${#all_directories[@]} directories containing notebooks."
+    else
+      # call ./lib/find_notebook_directories to get a list of directories
+      # containing .ipynb files
+      local notebooks
+      local array
+      local count
+      notebooks=$(find_notebook_directories "$2")
 
-    # This is for bash/zsh interop.
-    # For some reason 0th element is always unset in both bash/zsh
-    # 1st element is set if array has > 0 members
-    # However, passing current path "." results in the 0th member being set
-    # (todo jeff): more testing arount this
-    if [[ -z "${array[1]}" ]] && [[ -z "${array[0]}" ]]; then
-      echo "set count to 0"
-      count=0
+      # build an array from the results
+      array=()
+      while IFS=$'\n' read -r line; do array+=("$line"); done <<<"$notebooks"
+
+      # count members of array
+      count="${#array[@]}"
+
+      # This is for bash/zsh interop.
+      # For some reason 0th element is always unset in both bash/zsh
+      # 1st element is set if array has > 0 members
+      # However, passing current path "." results in the 0th member being set
+      # (todo jeff): more testing around this
+      if [[ -z "${array[1]}" ]] && [[ -z "${array[0]}" ]]; then
+        echo "set count to 0"
+        count=0
+      fi
+
+      echo "$notebooks"
+      echo "Found ${count} directories containing notebooks."
     fi
 
-    echo "Found ${count} directories containing notebooks."
-    echo "$notebooks"
+  elif
+
+    [[ "$option" == "recent" ]] || [[ "$option" == "r" ]]
+  then
+
+    local kapitsa_paths
+    local all_files
+    local all
+
+    kapitsa_paths=$(get_kapitsa_paths)
+
+    # Run the search on each directory specified
+    all_files=()
+    while IFS= read -r directory; do
+      local nbs
+      nbs=$(find_recent_notebooks "${directory}" 1)
+      while IFS=$'\n' read -r line; do all_files+=("$line"); done <<<"$nbs"
+    done <<<"$kapitsa_paths"
+
+    # sort and format list
+    all=$(
+      IFS=$'\n'
+      echo "${all_files[*]}"
+    )
+    echo "$all" |
+      sort -k1,19 -r |
+      cut -c 21-
 
   elif [[ "$option" == "search" ]] || [[ "$option" == "s" ]]; then
 
@@ -250,7 +311,7 @@ main() {
 
   # create array of libraries to source
   local libraries
-  libraries=('find_notebook_directories' 'find_in_notebook_source')
+  libraries=('find_notebook_directories' 'find_in_notebook_source' 'find_recent_notebooks')
 
   # source libraries
   for i in "${libraries[@]}"; do
