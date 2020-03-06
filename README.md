@@ -1,4 +1,4 @@
-# KAPITSA (v0.1.1)
+# KAPITSA (v0.1.2)
 
 Search your Jupyter notebooks.
 
