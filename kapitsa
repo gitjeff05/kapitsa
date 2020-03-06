@@ -50,10 +50,12 @@ check_kapitsa_config() {
 # Print help info
 kapitsa_help() {
   echo -e "kapitsa help:\n"
-  echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}            List all paths containing .ipynb files"
-  echo -e "${CL_CYA}kapitsa ${CL_RED}search regex [-p path]${CL_DEF} Output all cells matching on regex.
-                               Supply optional path, otherwise search paths defined in kapitsa config."
-  echo -e "Examples\n"
+  echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}              List all paths containing .ipynb files.
+                                 Unless given optional path, search all paths in configuration file."
+  echo -e "${CL_CYA}kapitsa ${CL_RED}search regex [-p path]${CL_DEF}   Output all cells matching on regex.
+                                 Unless given optional path, search all paths in configuration file."
+  echo -e "${CL_CYA}kapitsa ${CL_RED}recent${CL_DEF}                   List recently modified notebooks."
+  echo -e "\nExamples\n"
   echo -e "${CL_CYA}kapitsa ${CL_RED}list .${CL_DEF}                   Lists all paths in current directory containing .ipynb files"
   echo -e "${CL_CYA}kapitsa ${CL_RED}search \"join\" ${CL_DEF}           Print code cells matching \"join\""
   echo -e "${CL_CYA}kapitsa ${CL_RED}search \"(join|concat)\" ${CL_DEF}  Print code cells matching on \"join\" or \"concat\"\n"
@@ -115,36 +117,7 @@ kapitsa_search() {
     find_in_notebook_source "${directory}" "${search_string}"
 
     # TODO(jeff): Make searching for tags option
-    # Get a list of all the files to iterate over
-    # files_list=$(find "$directory" -type f -name '*.ipynb' \! -path "*ipynb_checkpoints*" \! -path "*reddit*" -prune -print)
-    # echo "files"
-    # echo "$files_list"
-    # # For every notebook file found in this directory perform the search
-    # while IFS= read -r notebook_file; do
 
-    #   # Find any cells that are code blocks and that contain the metadata attribute kapitsa
-    #   kapitsa_cells=$( (jq -r '.cells[] | select( (.cell_type == "code") and (.metadata.tags | type == "array") ) | { tags: .metadata.tags, source }') <"$notebook_file")
-
-    #   # If there was a match, print the results
-    #   if [ ${#kapitsa_cells} -ge 1 ]; then
-
-    #     # If program was run with just `kapitsa` then return everything
-    #     if [ -z "${search_string}" ]; then
-    #       out=$(echo "$kapitsa_cells" | jq -c '. | { source, tags: .tags | join(" ") }')
-    #       total_len=$(echo "$out" | jq -s '. | length')
-    #       echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells in ${CL_CYA}$notebook_file${CL_DEF}\n"
-    #       echo "$out" | jq '.'
-    #       break
-    #     fi
-
-    #     cells_with_key=$(echo "$kapitsa_cells" | jq --arg foo "$search_string" '. | select( .tags | join(" ") | test($foo, "ig") ) | { source, tags: .tags | join(" ") }')
-    #     total_len=$(echo "$cells_with_key" | jq -s '. | length')
-    #     echo -e "\nFound ${CL_YEL}$total_len${CL_DEF} tagged cells matching pattern $search_string in ${CL_CYA}$notebook_file${CL_DEF}\n"
-    #     echo "$cells_with_key" | jq .
-
-    #   fi
-
-    # done < <(echo "$files_list")
   done < <(echo "$paths")
 
 }
@@ -176,15 +149,14 @@ kapitsa() {
     local kapitsa_paths
     local all_dirs
     local all
-
+    local nbs
     kapitsa_paths=$(get_kapitsa_paths)
 
     if [[ -z "$2" ]]; then
       # Run the search on each directory specified
-      echo "search default paths"
+      echo -e "Searching default paths: \n${kapitsa_paths}\n"
       all_dirs=()
       while IFS= read -r directory; do
-        local nbs
         nbs=$(find_notebook_directories "${directory}" 1)
         while IFS=$'\n' read -r line; do all_dirs+=("$line"); done <<<"$nbs"
       done <<<"$kapitsa_paths"
@@ -201,13 +173,14 @@ kapitsa() {
         IFS=$'\n'
         echo "${all_directories[*]}"
       )"
-      echo "Found ${#all_directories[@]} directories containing notebooks."
+      echo -e "\nFound ${#all_directories[@]} directories containing notebooks."
     else
       # call ./lib/find_notebook_directories to get a list of directories
       # containing .ipynb files
       local notebooks
       local array
       local count
+      echo -e "Searching path ${2}\n"
       notebooks=$(find_notebook_directories "$2")
 
       # build an array from the results
@@ -228,13 +201,10 @@ kapitsa() {
       fi
 
       echo "$notebooks"
-      echo "Found ${count} directories containing notebooks."
+      echo -e "\nFound ${count} directories containing notebooks."
     fi
 
-  elif
-
-    [[ "$option" == "recent" ]] || [[ "$option" == "r" ]]
-  then
+  elif [[ "$option" == "recent" ]] || [[ "$option" == "r" ]]; then
 
     local kapitsa_paths
     local all_files
@@ -270,21 +240,21 @@ kapitsa() {
     if [[ "${#search_arguments[@]}" -eq 1 ]]; then
 
       # Only the search regex was passed. Do default search across config paths
-      kapitsa_search "${search_arguments[1]}"
+      kapitsa_search "${2}"
 
     elif [[ "${#search_arguments[@]}" -eq 3 ]]; then
 
       # Three arguments supplied. User is trying to supply a path to search
 
       # Check to make sure 2nd arg was the '-p' flag
-      if [[ "${search_arguments[2]}" != "-p" ]]; then
+      if [[ "${3}" != "-p" ]]; then
         echo -e "Incorrect argument order. Optional third argument must be -p followed by a valid path.\n"
         kapitsa_help
         return 1
       fi
 
       # Pass arguments to find_in_notebook_source
-      find_in_notebook_source "${search_arguments[3]}" "${search_arguments[1]}"
+      find_in_notebook_source "${4}" "${2}"
 
     else
 
