@@ -7,7 +7,9 @@ CL_RED="\033[31m"
 CL_CYA="\033[36m\033[49m"
 CL_YEL="\033[33m\033[49m"
 
-# Print .kapitsa config example
+#######################################
+# kapitsa config info
+#######################################
 print_config_info() {
   echo -e "Kapitsa uses a json configuration file to know where to search for .ipynb files.\nThe value of \"path\" in the ${CL_CYA}.kapitsa${CL_DEF} config file must point to a valid path."
   echo "Multiple paths are allowed but must be separated by a colon (:)"
@@ -17,7 +19,9 @@ print_config_info() {
   echo "{\"path\":\"\$HOME/projects:\$HOME/github\"}" | jq .
 }
 
-# Check if the KAPITSA env var has been set
+#######################################
+# kapitsa env var check
+#######################################
 check_kapitsa_env_variable() {
   if [ -z "$KAPITSA" ]; then
     echo -e "${CL_RED}Error:${CL_DEF} 'KAPITSA' env variable not set. Set ${CL_CYA}KAPITSA${CL_DEF} to the path of your ${CL_CYA}.kapitsa${CL_DEF} config file."
@@ -30,8 +34,11 @@ check_kapitsa_env_variable() {
   fi
 }
 
-# Ensure kapitsa environment variable is set and
-# and config file contains valid path
+#######################################
+# kapitsa config check
+# Ensure KAPTISA env var points to a file and
+# that the file has a "path" key with a string value.
+#######################################
 check_kapitsa_config() {
   # Make sure $KAPITSA is pointing to a file.
   if [ ! -f "$KAPITSA" ]; then
@@ -47,7 +54,9 @@ check_kapitsa_config() {
   fi
 }
 
-# Print help info
+#######################################
+# kapitsa help info -
+#######################################
 kapitsa_help() {
   echo -e "kapitsa help:\n"
   echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}              List all paths containing .ipynb files.
@@ -61,11 +70,13 @@ kapitsa_help() {
   echo -e "${CL_CYA}kapitsa ${CL_RED}search \"(join|concat)\" ${CL_DEF}  Print code cells matching on \"join\" or \"concat\"\n"
 }
 
+#######################################
+# kapitsa settings -
+# Ensure KAPTISA env variable is set and points to a config file.
+#######################################
 check_settings() {
   local path_list
-
   check_kapitsa_env_variable && check_kapitsa_config
-
   # Get a list of paths on separate lines
   path_list=$(jq '.path' <"$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
   # If path contains $HOME, ensure that it is defined
@@ -77,18 +88,27 @@ check_settings() {
       return 1
     fi
   fi
-
 }
 
+#######################################
+# kapitsa paths - get the paths defined
+# in the configuration file.
+#######################################
 get_kapitsa_paths() {
   # Get a list of paths on separate lines
   path_list=$(jq '.path' <"$KAPITSA" | tr -d '[][:space:]"' | tr ':' '\n')
-
   # replace string $HOME with expanded shell variable $HOME
   paths="${path_list//\$HOME/$HOME}"
   echo "$paths"
 }
 
+#######################################
+# kapitsa search - searches all of the paths
+# in the config paths. If optional path is provided,
+# limit search to that path.
+# Arguments:
+#   search_string [-p path]
+#######################################
 kapitsa_search() {
 
   local search_string
@@ -145,7 +165,7 @@ kapitsa() {
 
   # list notebooks
   elif [[ "$option" == "list" ]] || [[ "$option" == "l" ]]; then
-
+    # list all paths containing notebooks
     local kapitsa_paths
     local all_dirs
     local all
@@ -196,7 +216,6 @@ kapitsa() {
       # However, passing current path "." results in the 0th member being set
       # (todo jeff): more testing around this
       if [[ -z "${array[1]}" ]] && [[ -z "${array[0]}" ]]; then
-        echo "set count to 0"
         count=0
       fi
 
@@ -205,17 +224,17 @@ kapitsa() {
     fi
 
   elif [[ "$option" == "recent" ]] || [[ "$option" == "r" ]]; then
-
+    # list recently modified files
     local kapitsa_paths
     local all_files
     local all
+    local nbs
 
     kapitsa_paths=$(get_kapitsa_paths)
 
     # Run the search on each directory specified
     all_files=()
     while IFS= read -r directory; do
-      local nbs
       nbs=$(find_recent_notebooks "${directory}" 1)
       while IFS=$'\n' read -r line; do all_files+=("$line"); done <<<"$nbs"
     done <<<"$kapitsa_paths"
