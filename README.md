@@ -157,7 +157,6 @@ Kapitsa has been tested on the following platforms.
 - [x] GNU bash, version 3.2.57(1)-release (x86_64-apple-darwin19)
 - [x] zsh 5.7.1 (x86_64-apple-darwin18.2.0)
 - [x] GNU bash, version 4.4.20(1)-release (x86_64-pc-linux-gnu)
-  - *There is a bug with `kapitsa recent` in bash 4.4 currently.*
 
 Please open a pull request with as much information as possible so we can try to get it working.
 

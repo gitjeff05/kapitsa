@@ -59,10 +59,12 @@ check_kapitsa_config() {
 #######################################
 kapitsa_help() {
   echo -e "kapitsa help:\n"
-  echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}              List all paths containing .ipynb files.
-                                 Unless given optional path, search all paths in configuration file."
   echo -e "${CL_CYA}kapitsa ${CL_RED}search regex [-p path]${CL_DEF}   Output all cells matching on regex.
                                  Unless given optional path, search all paths in configuration file."
+  echo -e "${CL_CYA}kapitsa ${CL_RED}tags regex${CL_DEF}   Output all cells whose tags match on regex."
+  echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}              List all paths containing .ipynb files.
+                                 Unless given optional path, search all paths in configuration file."
+
   echo -e "${CL_CYA}kapitsa ${CL_RED}recent${CL_DEF}                   List recently modified notebooks."
   echo -e "\nExamples\n"
   echo -e "${CL_CYA}kapitsa ${CL_RED}list .${CL_DEF}                   Lists all paths in current directory containing .ipynb files"
@@ -136,9 +138,34 @@ kapitsa_search() {
 
     find_in_notebook_source "${directory}" "${search_string}"
 
-    # TODO(jeff): Make searching for tags option
+  done <<< "$paths"
 
-  done < <(echo "$paths")
+}
+
+#######################################
+# kapitsa search tags - searches all of the paths
+# in the config paths for tags matching input
+#######################################
+kapitsa_search_tags() {
+
+  local search_string
+  local path_list
+  local paths
+
+  search_string="$1"
+
+  # Run the search on each directory specified
+  while IFS= read -r directory; do
+
+    # break out if directory is not valid
+    if [ ! -d "$directory" ]; then
+      echo -e "${CL_YEL}Warning${CL_DEF}: $directory not a valid directory. Make sure your ${CL_CYA}.kapitsa${CL_DEF} config file contains a valid directory."
+      break
+    fi
+
+    find_in_notebook_tags "${directory}" "${search_string}"
+
+  done < <(get_kapitsa_paths)
 
 }
 
@@ -248,6 +275,7 @@ kapitsa() {
       sort -k1,19 -r |
       cut -c 21-
 
+  # search notebooks
   elif [[ "$option" == "search" ]] || [[ "$option" == "s" ]]; then
 
     local args
@@ -283,6 +311,10 @@ kapitsa() {
 
     fi
 
+  elif [[ "$option" == "tags" ]] || [[ "$option" == "t" ]]; then
+
+      kapitsa_search_tags "${2}"
+
   else
     echo -e "Incorrect arguments\n"
     kapitsa_help
@@ -300,7 +332,7 @@ main() {
 
   # create array of libraries to source
   local libraries
-  libraries=('find_notebook_directories' 'find_in_notebook_source' 'find_recent_notebooks')
+  libraries=('find_notebook_directories' 'find_in_notebook_source' 'find_recent_notebooks' 'find_in_notebook_tags')
 
   # source libraries
   for i in "${libraries[@]}"; do

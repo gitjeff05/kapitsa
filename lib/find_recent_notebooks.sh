@@ -40,7 +40,7 @@ find_recent_notebooks() {
     # all at once in parent script
     else
       find "${dir}" -name "*.ipynb" \
-        \! -path "*ipynb_checkpoints*" -mtime -60d \
+        \! -path "*ipynb_checkpoints*" -mtime -60 \
         -print0 | xargs -0 stat "${flags[@]}"
     fi
 
