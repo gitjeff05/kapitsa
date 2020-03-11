@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+
 # Search directory recursively and return paths containing
 # notebook files (.ipynb)
 

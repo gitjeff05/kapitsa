@@ -2,24 +2,25 @@
 
 Search your Jupyter notebooks.
 
-```bash session
+```bash
 > kapitsa help
 
+Kapitsa Help:
+
+kapitsa search regex [-p path]   Search cell source.
+kapitsa tags regex               Search cell tags.
 kapitsa list [path]              List all paths containing .ipynb files.
-                                 Unless given optional path, search all paths in configuration file.
-
-kapitsa search regex [-p path]   Output all cells matching on regex.
-                                 Unless given optional path, search all paths in configuration file.
-
 kapitsa recent                   List recently modified notebooks.
 
----------------------------------
+By default Kapitsa will search all paths defined in .kapitsa config file.
 
 Examples
 
-kapitsa list .                   Lists all paths in current directory containing .ipynb files
-kapitsa search "join"            Print code cells matching "join"
-kapitsa search "(join|concat)"   Print code cells matching on "join" or "concat"
+kapitsa list .                      Lists all paths in current directory containing .ipynb files
+kapitsa search "join"               Print cells matching "join"
+kapitsa search "(join|concat)"      Print cells matching on "join" or "concat"
+kapitsa tags "(pandas|where)"       Print cells with tags "pandas" or "where"
+kapitsa tags "(?=.*where)(?=.*loc)" Print cells with tags "where" and "loc"
 ```
 
 
@@ -31,11 +32,12 @@ As the number of your Jupyter projects grow, it becomes difficult to stay organi
 
 ## Solution
 
-Kapitsa is a simple script that searches the **source** of Jupyter notebook cells -- in `.ipynb` files -- and returns the code and path to that file. Users just configure paths where they keep their notebooks. Kapitsa provides some convenient functions:
+Kapitsa is a simple script that searches the **source** and **metadata.tags** of Jupyter notebook cells and returns the code and path to that file. Users just configure paths where they keep their notebooks. Kapitsa provides some convenient functions:
 
 1. **Search** - Query your notebooks for code examples (e.g., "pd.join").
-2. **Recent** - List recently modified notebooks sorted by date.
-3. **List** - View all paths on your filesystem that contain notebooks.
+2. **Search Tags** - Query your notebooks cells by tag.
+3. **Recent** - List recently modified notebooks sorted by date.
+4. **List** - View all paths on your filesystem that contain notebooks.
 
 
 
@@ -52,6 +54,7 @@ Not only can you search *your* notebooks, but any notebooks on your machine. Tha
 ```
 
 ```jsonc
+Found 2 matching cells in /Users/Me/File.ipynb
 {
   "source": [
     "df = df.join(zip_codes.loc[:, ['Zip', 'Latitude', 'Longitude']].set_index('Zip'), on='ZIPCODE')"
@@ -77,10 +80,10 @@ Not only can you search *your* notebooks, but any notebooks on your machine. Tha
 ## Find cells matching "pandas" **AND** "numpy".
 
 ```bash session
-> kapitsa "(?=.*pandas)(?=.*regex)"
+> kapitsa search "(?=.*pandas)(?=.*regex)"
 ```
 
-*Note: The above command does seem ridiculously complex for an `and` statement. Perhaps there is a better way.*
+*Note: The above command does seem ridiculously complex for an `and` statement. Perhaps there is a better way. For now, I wanted the users to have complete control over the argument passed to `jq` to do the search.*
 
 ## Have a quick glance to see what notebooks you have worked on recently:
 
