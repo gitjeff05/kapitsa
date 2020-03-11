@@ -1,51 +1,58 @@
-# KAPITSA (v0.1.2)
+# KAPITSA (v0.1.4)
 
-Search your Jupyter notebooks.
+<img src="https://repository-images.githubusercontent.com/239854510/065d3b80-6323-11ea-9b2f-806dbb0c592f" alt="Kapitsa logo" style="text-align:center"/>
 
-```bash
-> kapitsa help
-
-Kapitsa Help:
-
-kapitsa search regex [-p path]   Search cell source.
-kapitsa tags regex               Search cell tags.
-kapitsa list [path]              List all paths containing .ipynb files.
-kapitsa recent                   List recently modified notebooks.
-
-By default Kapitsa will search all paths defined in .kapitsa config file.
-
-Examples
-
-kapitsa list .                      Lists all paths in current directory containing .ipynb files
-kapitsa search "join"               Print cells matching "join"
-kapitsa search "(join|concat)"      Print cells matching on "join" or "concat"
-kapitsa tags "(pandas|where)"       Print cells with tags "pandas" or "where"
-kapitsa tags "(?=.*where)(?=.*loc)" Print cells with tags "where" and "loc"
-```
-
+## Search your Jupyter notebooks.
 
 ## Motivation
 
-As the number of your Jupyter projects grow, it becomes difficult to stay organized. Searching for code in notebooks across folders is hard. The folder structure of your ML environment is not intuitive and it is difficult to get a grasp on your local environment.
+As the number of projects grow, it becomes difficult to keep notebooks organized and searchable.
 
 [See blog post for further explanation and the basics of these shell commands](https://www.optowealth.com/blog/better-way-to-search-your-notebooks).
 
 ## Solution
 
-Kapitsa is a simple script that searches the **source** and **metadata.tags** of Jupyter notebook cells and returns the code and path to that file. Users just configure paths where they keep their notebooks. Kapitsa provides some convenient functions:
+Kapitsa is a simple program that provides a centralized way to search and keep track of your notebooks. Users simply configure paths where they keep their notebooks. Kapitsa provides the rest:
 
-1. **Search** - Query your notebooks for code examples (e.g., "pd.join").
-2. **Search Tags** - Query your notebooks cells by tag.
-3. **Recent** - List recently modified notebooks sorted by date.
-4. **List** - View all paths on your filesystem that contain notebooks.
+1. **Search Code** - Query your notebooks' source.
+2. **Search Tags** - Query your notebooks' cell tags.
+3. **Recent** - List recently modified notebooks.
+4. **List** - View all directories on your system that contain notebooks.
+
+## Benefits & Use Cases
+
+Why would you use this?
+
+Not only can you search *your* notebooks, but any notebooks on your machine. That means any notebooks you pulled from Github are now searchable.
+
+Have you ever solved some complex problem and thought you should bookmark the solution for later? Tag the cell with relevant keywords and kapitsa can find it later with `kapitsa tags "keyword"`.
+
+Having trouble remembering how to use `concat` or some api in -_insert framework here_? Just run `kapitsa search "concat"` to get all the cells containing `concat`.
+
+Where was that notebook you worked on 2 weeks ago? `kapitsa recent` will jog your memory.
+
+# API
+
+| Command                        | Description                                                              |
+| ------------------------------ | -------------------------------------------------------------------------|
+| kapitsa search regex [-p path] | Search notebook source.                                                  |
+| kapitsa tags regex             | Search notebook cell tags.                                               |
+| kapitsa list [path]            | List all paths containing .ipynb files.                                  |
+| kapitsa recent                 | List recently modified notebooks.                                        |
+| kapitsa [help\|h]              | Print help info.                                                         |
 
 
+# Quick Examples
 
-## Benefits
+| Command                                | Description                                                              |
+| -------------------------------------- | -------------------------------------------------------------------------|
+| kapitsa list .                         | Lists all paths in current directory containing .ipynb files             |
+| kapitsa search "join"                  | Print cells matching "join"                                              |
+| kapitsa search "(join\|concat)"        | Print cells matching on "join" or "concat"                               |
+| kapitsa tags "(pandas\|where)"         | Print cells with tags "pandas" or "where"                                |
+| kapitsa tags "(?=.*where)(?=.*loc)"    | Print cells with tags "where" and "loc"                                  |
 
-Not only can you search *your* notebooks, but any notebooks on your machine. That means any notebooks you pulled from Github are now searchable. Having trouble remembering how to use `concat`? Just run `kapitsa search "concat"` to get the source of all the cells matching 'concat'. Where was that notebook you worked on 2 weeks ago? `kapitsa recent` will jog your memory.
-
-# Examples
+# Verbose Examples
 
 ## Find notebook cells matching "*join*".
 
@@ -55,19 +62,19 @@ Not only can you search *your* notebooks, but any notebooks on your machine. Tha
 
 ```jsonc
 Found 2 matching cells in /Users/Me/File.ipynb
-{
-  "source": [
-    "df = df.join(zip_codes.loc[:, ['Zip', 'Latitude', 'Longitude']].set_index('Zip'), on='ZIPCODE')"
-  ],
-  "file": "/Users/Me/Projects/NIH/train/NIH-2019-awards.ipynb"
-}
-{
-  "source": [
-    "# join two dataframes on the original dataframes' column. Index must be set appropriately on second df.\n",
-    "us = us.join(zips_to_coords.loc[:, ['Zip', 'Lat', 'Long']].set_index('Zip'), on='ZIPCODE')"
-  ],
-  "file": "/Users/Me/Tutorials/DataframeTutorial.ipynb"
-}
+[
+  {
+    "source": [
+      "df = df.join(zip_codes.loc[:, ['Zip', 'Latitude', 'Longitude']].set_index('Zip'), on='ZIPCODE')"
+    ]
+  },
+  {
+    "source": [
+      "# join two dataframes on the original dataframes' column. Index must be set appropriately on second df.\n",
+      "us = us.join(zips_to_coords.loc[:, ['Zip', 'Lat', 'Long']].set_index('Zip'), on='ZIPCODE')"
+    ]
+  }
+]
 ...
 ```
 
@@ -152,8 +159,10 @@ If you get a list of paths then you are good to go. Add more paths (separated by
 > kapitsa help
 ```
 
+Or open a ticket for bug reports or feature requests.
 
-# Testing and compatability:
+
+# Testing and compatibility:
 
 Kapitsa has been tested on the following platforms.
 
@@ -191,7 +200,7 @@ Note that any of the files in `lib` are meant to be run on their own or through 
 
 # Notes on implementation
 
-This program is meant to be minimal. Most of it is done through `find` and `jq`. I have not included comprehensive install scripts that would do a lot of the setup for you (e.g., editing `.bash_profile` or adding files to your `$HOME` directory). Users should be at least somewhat familiar with the command line (i.e., knowledge of `.bash_profile` (or similar), `alias` and `chmod`). Anyone can read the contents of `kapitsa` and know that it simply reads some files and produces an output. Please [open an issue](https://github.com/gitjeff05/kapitsa/issues) to file a bug or request a feature.
+This program is meant to be minimal and portable. Most of the functionality is through `find` and `jq`. I have not included comprehensive install scripts that would do a lot of the setup for you (e.g., editing `.bash_profile` or adding files to your `$HOME` directory). Users should be at least somewhat familiar with the command line (i.e., knowledge of `.bash_profile` (or similar), `alias` and `chmod`). Anyone can read the contents of `kapitsa` and know that it simply reads some files and produces an output. Please [open an issue](https://github.com/gitjeff05/kapitsa/issues) to file a bug or request a feature.
 
 # Security
 
@@ -199,11 +208,11 @@ I have done my best to ensure that this code can do no harm. The primary use of 
 
 # Future Ideas
 
-- Search on tags. This way, users can build a more "curated" list of what they perceive as high quality examples to search. This feature is next on the list.
 - A default set of examples for some languages/frameworks (e.g., python, pandas, numpy, scikit)
 - Caching cell metadata to make searches faster
 - Fetching metadata and source from remote locations. Users could essentially "subscribe" to other authors' preferred examples the same way bash users borrow shell configurations (.dotfiles) from authors.
 - A JupyterLab extension to facilitate the search right inside of JupyterLab.
 
 # License
-MIT License. See LICENSE.md
+
+Licensed under the Apache License, Version 2.0
