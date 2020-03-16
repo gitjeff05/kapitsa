@@ -6,30 +6,30 @@
 
 ## Motivation
 
-As the number of projects grow, it becomes difficult to keep notebooks organized and searchable.
+As the number of projects grow, it becomes difficult to keep notebooks organized and searchable on your local machine.
 
-[See blog post for further explanation and the basics of these shell commands](https://www.optowealth.com/blog/better-way-to-search-your-notebooks).
+[See blog post for for how this project got started and the tools behind it.](https://www.optowealth.com/blog/better-way-to-search-your-notebooks).
 
 ## Solution
 
-Kapitsa is a simple program that provides a centralized way to search and keep track of your notebooks. Users simply configure paths where they keep their notebooks. Kapitsa provides the rest:
+Kapitsa is a simple, minimally configured command line program that provides a centralized way to search and keep track of your notebooks. Users simply configure paths where they keep their notebooks. Kapitsa provides convenience methods do do the following:
 
 1. **Search Code** - Query your notebooks' source.
 2. **Search Tags** - Query your notebooks' cell tags.
-3. **Recent** - List recently modified notebooks.
-4. **List** - View all directories on your system that contain notebooks.
+3. **List Recent** - List notebooks you have worked on recently.
+4. **List Directories** - View all directories on your system that contain notebooks.
 
 ## Benefits & Use Cases
 
-Why would you use this?
+Providing the ability to search *your* notebooks and any notebooks on your machine makes finding code examples easier. Search all notebooks on your local machine -- that means notebooks you pulled from Github, too.
 
-Not only can you search *your* notebooks, but any notebooks on your machine. That means any notebooks you pulled from Github are now searchable.
+### Use Cases:
 
-Have you ever solved some complex problem and thought you should bookmark the solution for later? Tag the cell with relevant keywords and kapitsa can find it later with `kapitsa tags "keyword"`.
+1. Have you ever solved some complex problem and thought bookmarking the solution for later would be beneficial? With Kapitsa, you just tag the cell with a relevant `"keyword"` and find it later with `kapitsa tags "keyword"`.
 
-Having trouble remembering how to use `concat` or some api in -_insert framework here_? Just run `kapitsa search "concat"` to get all the cells containing `concat`.
+2. Having trouble remembering how to use some API in [_insert library here_]? Just run `kapitsa search "function"` to search your notebooks for all cells containing `function` in their source.
 
-Where was that notebook you worked on 2 weeks ago? `kapitsa recent` will jog your memory.
+3. Where was that notebook you worked on 2 weeks ago? Running `kapitsa recent` will jog your memory.
 
 # API
 
@@ -133,10 +133,10 @@ Users must have [jq >= jq-1.6](https://stedolan.github.io/jq/) installed because
 ## Create `.kapitsa` configuration file.
 
 ```bash session
-> echo '{"path":"$HOME/Github/kapitsa"}' > ~/.kapitsa
+> echo '{"path":"$HOME/Github/kapitsa"}' > ~/.kapitsa # separate paths by ":"
 ```
 
-## Create a variable, `KAPITSA` that points to your config file.
+## Create an environment variable, `KAPITSA` that points to your config file.
 
 ```bash session
 > export KAPITSA=$HOME/.kapitsa # add to your .bash_profile
@@ -159,7 +159,7 @@ If you get a list of paths then you are good to go. Add more paths (separated by
 > kapitsa help
 ```
 
-Or open a ticket for bug reports or feature requests.
+Open a ticket for bug reports or feature requests.
 
 
 # Testing and compatibility:
@@ -170,7 +170,7 @@ Kapitsa has been tested on the following platforms.
 - [x] zsh 5.7.1 (x86_64-apple-darwin18.2.0)
 - [x] GNU bash, version 4.4.20(1)-release (x86_64-pc-linux-gnu)
 
-Please open a pull request with as much information as possible so we can try to get it working.
+If Kapitsa is not working for you, please open a pull request with as much information as possible so we can try to get it working.
 
 # Advanced queries
 
@@ -212,6 +212,8 @@ I have done my best to ensure that this code can do no harm. The primary use of 
 - Caching cell metadata to make searches faster
 - Fetching metadata and source from remote locations. Users could essentially "subscribe" to other authors' preferred examples the same way bash users borrow shell configurations (.dotfiles) from authors.
 - A JupyterLab extension to facilitate the search right inside of JupyterLab.
+- Ability to build cheat sheets based on tags.
+- Some sort of post-save process to copy over the notebook file sans `output` and `execution_count` -- which would make `git diff` work way better.
 
 # License
 
