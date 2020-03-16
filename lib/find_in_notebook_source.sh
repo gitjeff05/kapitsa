@@ -76,7 +76,7 @@ find_in_notebook_source() {
 
       # if found cells, print them out along with filename.
       if [[ "$num_cells_matching_search" -gt 0 ]]; then
-        echo "Found ${CL_YEL}$num_cells_matching_search${CL_DEF} matching cells in ${CL_YEL}$i${CL_DEF}"
+        echo -e "Found ${CL_YEL}$num_cells_matching_search${CL_DEF} matching cells in ${CL_YEL}$i${CL_DEF}"
         printf "%s" "$cells_matching_on_search" | jq .
       fi
 

@@ -70,7 +70,7 @@ find_in_notebook_tags() {
       # If found matching cells, print out results.
       if [[ "$num_cells_matching_search" -gt 0 ]]; then
         echo "${i}"
-        echo "Found ${CL_YEL}$num_cells_matching_search${CL_DEF} matches on ${CL_YEL}$SEARCH_STRING${CL_DEF}"
+        echo -e "Found ${CL_YEL}$num_cells_matching_search${CL_DEF} matches on ${CL_YEL}$SEARCH_STRING${CL_DEF}"
         printf "%s" "$cells_matching_on_search" | jq '.'
       fi
 
