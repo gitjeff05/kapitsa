@@ -214,7 +214,6 @@ I have done my best to ensure that this code can do no harm. The primary use of 
 - Fetching metadata and source from remote locations. Users could essentially "subscribe" to other authors' preferred examples the same way bash users borrow shell configurations (.dotfiles) from authors.
 - A JupyterLab extension to facilitate the search right inside of JupyterLab.
 - Ability to build cheat sheets based on tags.
-- Some sort of post-save process to copy over the notebook file sans `output` and `execution_count` -- which would make `git diff` work way better.
 
 # License
 
