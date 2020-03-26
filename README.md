@@ -39,6 +39,7 @@ Providing the ability to search *your* notebooks and any notebooks on your machi
 | kapitsa tags regex             | Search notebook cell tags.                                               |
 | kapitsa list [path]            | List all paths containing .ipynb files.                                  |
 | kapitsa recent                 | List recently modified notebooks.                                        |
+| kapitsa list-tags              | List all defined tags.                                                   |
 | kapitsa clear notebook         | Remove cell outputs and execution_count from code cells in notebook      |
 | kapitsa [help\|h]              | Print help info.                                                         |
 
