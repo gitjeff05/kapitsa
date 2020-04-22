@@ -82,7 +82,7 @@ check_kapitsa_config() {
 kapitsa_help() {
   echo -e "\nKapitsa Help:\n"
   echo -e "${CL_CYA}kapitsa ${CL_RED}search regex [-p path]${CL_DEF}   Search cell source."
-  echo -e "${CL_CYA}kapitsa ${CL_RED}tags regex${CL_DEF}               Search cell tags."
+  echo -e "${CL_CYA}kapitsa ${CL_RED}tags regex [-v]${CL_DEF}          Search cell tags [-verbose mode]."
   echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}              List all paths containing .ipynb files."
   echo -e "${CL_CYA}kapitsa ${CL_RED}recent${CL_DEF}                   List recently modified notebooks."
   echo -e "${CL_CYA}kapitsa ${CL_RED}list-tags [path]${CL_DEF}         List all defined tags."
@@ -177,10 +177,13 @@ kapitsa_search_tags() {
   local paths
 
   search_string="$1"
+  verbose="$2"
 
   # Run the search on each directory specified
   while IFS= read -r directory; do
-
+    if [[ "$verbose" == "verbose" ]]; then
+      echo "Searching $directory"
+    fi
     # break out if directory is not valid
     if [ ! -d "$directory" ]; then
       echo -e "${CL_YEL}Warning${CL_DEF}: $directory not a valid directory. Make sure your ${CL_CYA}.kapitsa${CL_DEF} config file contains a valid directory."
@@ -365,7 +368,11 @@ kapitsa() {
 
   elif [[ "$option" == "tags" ]] || [[ "$option" == "t" ]]; then
 
-      kapitsa_search_tags "${2}"
+      if [[ "$3" == "-v" ]]; then
+        kapitsa_search_tags "${2}" "verbose"
+      else
+        kapitsa_search_tags "${2}"
+      fi
 
   elif [[ "$option" == "list-tags" ]] || [[ "$option" == "lt" ]]; then
 
