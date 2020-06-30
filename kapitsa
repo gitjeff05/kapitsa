@@ -205,6 +205,36 @@ kapitsa_list_all_tags() {
   local tags
   local tags_in_dir
   tags='[]'
+  local local_dir="$1"
+
+  if [[ -n "$local_dir" ]]; then
+
+    # break out if directory is not valid
+    if [ ! -d "$local_dir" ]; then
+      echo -e "${CL_YEL}Warning${CL_DEF}: $local_dir not a valid directory."
+      return
+    fi
+
+    tags_in_dir="$(find_all_notebook_tags "${local_dir}")"
+
+    # Get array as space separated output
+    local space_sep_out
+    space_sep_out=$(echo "${tags_in_dir}" | jq -r '. | flatten | unique | @sh')
+
+    # Build an array
+    local lines
+    IFS=' ' read -r -A lines <<<"$space_sep_out"
+
+    if [[ "${#lines[@]}" -gt 0 ]]; then
+      echo -e "Found ${CL_YEL}${#lines[@]}${CL_DEF} tags in ${CL_YEL}${local_dir}${CL_DEF}"
+    else
+      echo -e "${CL_YEL}No tags found.${CL_DEF}"
+      return
+    fi
+
+    printf '%s\n' "${lines[@]}"
+    return
+  fi
 
   # Run the search on each directory specified
   while IFS= read -r directory; do
@@ -220,14 +250,28 @@ kapitsa_list_all_tags() {
 
   done < <(get_kapitsa_paths)
 
-  echo "${tags}" | jq '. | flatten | unique'
+  # Get array as space separated output
+  local space_sep_out
+  space_sep_out=$(echo "${tags}" | jq -r '. | flatten | unique | @sh')
 
+  # Build an array
+  local lines
+  IFS=' ' read -r -A lines <<<"$space_sep_out"
+
+  if [[ "${#lines[@]}" -gt 0 ]]; then
+    echo -e "Found ${CL_YEL}${#lines[@]}${CL_DEF} tags across all directories"
+  else
+    echo -e "${CL_YEL}No tags found.${CL_DEF}"
+    return
+  fi
+
+  printf '%s\n' "${lines[@]}"
 }
 
 #######################################
 # kapitsa is the entry point
 # Arguments:
-#   [help|list|recent|search|tags|clear]
+#   [help|list|recent|search|tags|list-tags|clear]
 #######################################
 kapitsa() {
   # The command passed to kapitsa [list|search|help]
