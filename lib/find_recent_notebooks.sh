@@ -14,7 +14,7 @@ find_recent_notebooks() {
 
   # run find if valid directory
   if [[ -d "$SEARCH_DIRECTORY" ]]; then
-
+    
     # remove trailing slash
     dir="${SEARCH_DIRECTORY%/}"
 
@@ -26,6 +26,7 @@ find_recent_notebooks() {
     # If the second argument is unset, then
     # assume script is called from command line:
     # (e.g., find_recent_notebooks "path")
+    # Note: this is probably not common.
     if [[ -z "$2" ]]; then
       find "${dir}" -name "*.ipynb" \
         \! -path "*ipynb_checkpoints*" -mtime -60d \
@@ -40,7 +41,7 @@ find_recent_notebooks() {
     # all at once in parent script
     else
       find "${dir}" -name "*.ipynb" \
-        \! -path "*ipynb_checkpoints*" -mtime -60 \
+        \! -path "*ipynb_checkpoints*" -mtime -"${2}" \
         -print0 | xargs -0 stat "${flags[@]}"
     fi
 

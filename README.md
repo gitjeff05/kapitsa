@@ -1,4 +1,4 @@
-# KAPITSA (v0.1.7)
+# KAPITSA (v0.1.8)
 
 <img src="https://repository-images.githubusercontent.com/239854510/065d3b80-6323-11ea-9b2f-806dbb0c592f" alt="Kapitsa logo" style="text-align:center"/>
 
@@ -38,7 +38,7 @@ Providing the ability to search *your* notebooks and any notebooks on your machi
 | kapitsa search regex [-p path] | Search notebook source.                                                  |
 | kapitsa tags regex [-v]        | Search notebook cell tags.                                               |
 | kapitsa list [path]            | List all paths containing .ipynb files.                                  |
-| kapitsa recent                 | List recently modified notebooks.                                        |
+| kapitsa recent [num_days]               | List recently modified notebooks (default last 60 days)                                        |
 | kapitsa list-tags [path]       | List all defined tags.                                                   |
 | kapitsa clear notebook         | Remove cell outputs and execution_count from code cells in notebook      |
 | kapitsa [help\|h]              | Print help info.                                                         |

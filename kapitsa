@@ -84,9 +84,9 @@ kapitsa_help() {
   echo -e "${CL_CYA}kapitsa ${CL_RED}search regex [-p path]${CL_DEF}   Search cell source."
   echo -e "${CL_CYA}kapitsa ${CL_RED}tags regex [-v]${CL_DEF}          Search cell tags [-verbose mode]."
   echo -e "${CL_CYA}kapitsa ${CL_RED}list [path]${CL_DEF}              List all paths containing .ipynb files."
-  echo -e "${CL_CYA}kapitsa ${CL_RED}recent${CL_DEF}                   List recently modified notebooks."
+  echo -e "${CL_CYA}kapitsa ${CL_RED}recent [days]${CL_DEF}            List recently modified notebooks in the past num_days (default is 60)."
   echo -e "${CL_CYA}kapitsa ${CL_RED}list-tags [path]${CL_DEF}         List all defined tags."
-  echo -e "${CL_CYA}kapitsa ${CL_RED}clear notebook${CL_DEF}           Remove cell outputs and execution_count from code cells.\n"
+  echo -e "${CL_CYA}kapitsa ${CL_RED}clear notebook_path${CL_DEF}      Remove cell outputs and execution_count from code cells.\n"
   echo -e "By default Kapitsa searches all paths defined in ${CL_CYA}.kapitsa${CL_DEF} config file.\n"
   echo -e "Examples\n"
   echo -e "${CL_CYA}kapitsa ${CL_RED}list .${CL_DEF}                      Lists all paths in current directory containing .ipynb files"
@@ -355,13 +355,16 @@ kapitsa() {
     local all_files
     local all
     local nbs
+    # default to 60 days or override with 2nd arg
+    local DEFAULT_DAYS=60
+    local number_days="${2:-$DEFAULT_DAYS}"
 
     kapitsa_paths=$(get_kapitsa_paths)
 
     # Run the search on each directory specified
     all_files=()
     while IFS= read -r directory; do
-      nbs=$(find_recent_notebooks "${directory}" 1)
+      nbs=$(find_recent_notebooks "${directory}" "${number_days}")
       while IFS=$'\n' read -r line; do all_files+=("$line"); done <<<"$nbs"
     done <<<"$kapitsa_paths"
 
