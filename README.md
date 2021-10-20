@@ -1,4 +1,4 @@
-# KAPITSA (v0.1.8)
+# KAPITSA (v0.1.9)
 
 <img src="https://repository-images.githubusercontent.com/239854510/065d3b80-6323-11ea-9b2f-806dbb0c592f" alt="Kapitsa logo" style="text-align:center"/>
 
