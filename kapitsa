@@ -443,17 +443,22 @@ main() {
   # check settings to make sure env variable is set
   # and config file is set
   check_settings
-
+  
+  # Get the current directory of the script.
+  # https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel/56264110#56264110
+  [ -n "$ZSH_VERSION" ] && curr_dir=$(dirname "${(%):-%x}") || curr_dir=$(dirname "${BASH_SOURCE[0]:-$0}")
+  
   # create array of libraries to source
   local libraries
   libraries=('find_notebook_directories' 'find_in_notebook_source' 'find_recent_notebooks' 'find_in_notebook_tags' 'remove_cell_outputs' 'find_all_notebook_tags')
 
   # source libraries
   for i in "${libraries[@]}"; do
-    if [[ -r "./lib/$i.sh" ]] && [[ -f "./lib/$i.sh" ]]; then
+    shell_script="${curr_dir}/lib/$i.sh"
+    if [[ -r "$shell_script" ]] && [[ -f "$shell_script" ]]; then
       # shellcheck source=lib/find_notebooks.sh
       # shellcheck disable=SC1091
-      . "./lib/$i.sh"
+      . "$shell_script"
     fi
   done
 }
