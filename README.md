@@ -33,26 +33,29 @@ Providing the ability to search *your* notebooks and any notebooks on your machi
 
 # API
 
-| Command                        | Description                                                              |
-| ------------------------------ | -------------------------------------------------------------------------|
-| kapitsa search regex [-p path] | Search notebook source.                                                  |
-| kapitsa tags regex [-v]        | Search notebook cell tags.                                               |
-| kapitsa list [path]            | List all paths containing .ipynb files.                                  |
-| kapitsa recent [num_days]               | List recently modified notebooks (default last 60 days)                                        |
-| kapitsa list-tags [path]       | List all defined tags.                                                   |
-| kapitsa clear notebook         | Remove cell outputs and execution_count from code cells in notebook      |
-| kapitsa [help\|h]              | Print help info.                                                         |
+| Command                                          | Description                                                              |
+| ------------------------------------------------ | -------------------------------------------------------------------------|
+| kapitsa search regex [-p path] [--all-cells] [--markdown] | Search notebook source. Use `term1+term2` for AND.          |
+| kapitsa tags regex [-v]                          | Search notebook cell tags.                                               |
+| kapitsa list [path]                              | List all paths containing .ipynb files.                                  |
+| kapitsa recent [num_days]                        | List recently modified notebooks (default last 60 days)                  |
+| kapitsa list-tags [path]                         | List all defined tags.                                                   |
+| kapitsa clear notebook                           | Remove cell outputs and execution_count from code cells in notebook      |
+| kapitsa [help\|h]                                | Print help info.                                                         |
 
 
 # Quick Examples
 
-| Command                                | Description                                                              |
-| -------------------------------------- | -------------------------------------------------------------------------|
-| kapitsa list .                         | Lists all paths in current directory containing .ipynb files             |
-| kapitsa search "join"                  | Print cells matching "join"                                              |
-| kapitsa search "(join\|concat)"        | Print cells matching on "join" or "concat"                               |
-| kapitsa tags "(pandas\|where)"         | Print cells with tags "pandas" or "where"                                |
-| kapitsa tags "(?=.*where)(?=.*loc)"    | Print cells with tags "where" and "loc"                                  |
+| Command                                          | Description                                                              |
+| ------------------------------------------------ | -------------------------------------------------------------------------|
+| kapitsa list .                                   | Lists all paths in current directory containing .ipynb files             |
+| kapitsa search "join"                            | Print code cells matching "join"                                         |
+| kapitsa search "(join\|concat)"                  | Print code cells matching "join" or "concat"                             |
+| kapitsa search "join+DataFrame"                  | Print code cells matching "join" AND "DataFrame"                         |
+| kapitsa search "pandas" --all-cells              | Print all cell types (code, markdown, raw) matching "pandas"             |
+| kapitsa search "install" --markdown              | Print markdown cells matching "install"                                  |
+| kapitsa tags "(pandas\|where)"                   | Print cells with tags "pandas" or "where"                                |
+| kapitsa tags "(?=.*where)(?=.*loc)"              | Print cells with tags "where" and "loc"                                  |
 
 # Verbose Examples
 
@@ -89,10 +92,28 @@ Found 2 matching cells in /Users/Me/File.ipynb
 ## Find cells matching "pandas" **AND** "numpy".
 
 ```bash session
-> kapitsa search "(?=.*pandas)(?=.*regex)"
+> kapitsa search "pandas+numpy"
 ```
 
-*Note: The above command does seem ridiculously complex for an `and` statement. Perhaps there is a better way. For now, I wanted the users to have complete control over the argument passed to `jq` to do the search.*
+Use `+` as a separator to require multiple terms in the same cell. Any number of terms is supported:
+
+```bash session
+> kapitsa search "read_csv+parse_dates+dtype"
+```
+
+The PCRE lookahead form still works if you need it: `kapitsa search "(?=.*pandas)(?=.*numpy)"`.
+
+## Search markdown cells.
+
+```bash session
+> kapitsa search "install" --markdown
+```
+
+## Search all cell types (code, markdown, raw).
+
+```bash session
+> kapitsa search "pandas" --all-cells
+```
 
 ## Have a quick glance to see what notebooks you have worked on recently:
 
